@@ -1,0 +1,62 @@
+Edumart
+├── README.md
+├── client
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── components
+│   ├── context
+│   ├── hooks
+│   ├── index.html
+│   ├── nginx
+│   │   └── default.conf
+│   ├── package.json
+│   ├── pages
+│   ├── public
+│   ├── src
+│   │   ├── App.jsx
+│   │   ├── App.test.jsx
+│   │   ├── main.jsx
+│   │   └── styles.css
+│   └── vite.config.js
+├── docker-compose.yml
+├── docs
+│   ├── API_ENDPOINTS.md
+│   ├── README.md
+│   ├── SUMMARY.md
+│   ├── project_charter.md
+│   ├── project_plan.md
+│   ├── requirements.md
+│   ├── sql_implementation_guide.md
+│   ├── sql_schema.md
+│   ├── team_roles.md
+│   ├── technical_architecture.md
+│   └── wireframes.md
+├── e-commerce praposal .pptx
+├── folder_structure.txt
+├── package-lock.json
+├── package.json
+├── server
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── controllers
+│   ├── middleware
+│   ├── models
+│   ├── package.json
+│   ├── services
+│   ├── src
+│   │   ├── app.js
+│   │   ├── config
+│   │   │   └── db.js
+│   │   ├── controllers
+│   │   ├── middleware
+│   │   ├── models
+│   │   ├── routes
+│   │   │   └── index.js
+│   │   ├── server.js
+│   │   ├── services
+│   │   └── utils
+│   ├── tests
+│   │   └── app.test.js
+│   └── utils
+└── sql
+    └── database_schema.sql
