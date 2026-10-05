@@ -8,6 +8,7 @@ import checkoutRoutes from './checkout.js';
 import paymentRoutes from './payment.js';
 import orderRoutes from './orders.js';
 import adminRoutes from './admin.js';
+import moderationRoutes from './moderation.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get('/health', (req, res) => {
 router.use('/api/auth', authRoutes);
 router.use('/api/categories', categoryRoutes);
 router.use('/api/materials', materialRoutes);
+router.use('/api/materials', moderationRoutes); // Moderation endpoints under same base
 router.use('/api/search', searchRoutes);
 router.use('/api/cart', cartRoutes);
 router.use('/api/checkout', checkoutRoutes);
@@ -52,6 +54,9 @@ router.get('/api', (req, res) => {
       '/api/materials/category/:categoryId',
       '/api/materials/:id',
       '/api/materials/suggest',
+      '/api/materials/pending',
+      '/api/materials/:id/approve',
+      '/api/materials/:id/reject',
       '/api/cart',
       '/api/cart/add',
       '/api/cart/item/:cartItemId',

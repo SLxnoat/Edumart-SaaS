@@ -15,7 +15,7 @@ export const getDashboardStats = async (req, res) => {
       Material.count(),
     ]);
 
-    // Get total revenue (sum of amount for paid/refunded? We'll sum amount for orders with paymentStatus paid)
+    // Get total revenue (sum of amount for paid orders)
     const paidOrders = await Order.sum('amount', {
       where: {
         paymentStatus: 'paid',
@@ -42,15 +42,25 @@ export const getDashboardStats = async (req, res) => {
       limit: 5,
     });
 
+    // Get recent signups (last 5 users by createdAt)
+    const recentSignups = await User.findAll({
+      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires', 'verificationToken', 'verificationTokenExpires'] },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    });
+
     res.status(200).json({
       success: true,
       stats: {
-        totalUsers,
-        totalOrders,
-        totalMaterials,
-        totalRevenue: parseFloat((paidOrders || 0).toFixed(2)),
+        sales: parseFloat((paidOrders || 0).toFixed(2)),
+        users: totalUsers,
+        revenue: parseFloat((paidOrders || 0).toFixed(2)), // same as sales
+        activity: {
+          recentOrders,
+          recentSignups,
+        },
         pendingOrders,
-        recentOrders,
+        totalMaterials,
       },
     });
   } catch (error) {
@@ -68,13 +78,20 @@ export const getDashboardStats = async (req, res) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20, role } = req.query;
+    const { page = 1, limit = 20, role, search } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const limitNum = parseInt(limit);
 
     const whereClause = {};
     if (role) {
       whereClause.role = role;
+    }
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.like]: `%${search}%` } },
+        { lastName: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+      ];
     }
 
     const { count, rows: users } = await User.findAndCountAll({

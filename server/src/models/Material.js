@@ -80,6 +80,16 @@ export default (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false,
     },
+    // Moderation
+    approvalStatus: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      allowNull: false,
+      defaultValue: 'pending',
+    },
+    moderationFeedback: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     // Metadata
     viewCount: {
       type: DataTypes.INTEGER,
@@ -119,6 +129,7 @@ export default (sequelize, DataTypes) => {
       { fields: ['examYear'] },
       { fields: ['materialType'] },
       { fields: ['price'] },
+      { fields: ['approvalStatus'] },
     ],
   });
 
@@ -143,6 +154,10 @@ export default (sequelize, DataTypes) => {
     Material.hasMany(models.OrderItem, {
       foreignKey: 'materialId',
       as: 'orderItems',
+    });
+    Material.hasMany(models.Review, {
+      foreignKey: 'materialId',
+      as: 'reviews',
     });
   };
 
