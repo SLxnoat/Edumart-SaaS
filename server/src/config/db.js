@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 import User from '../models/User.js';
 import Category from '../models/Category.js';
 import Material from '../models/Material.js';
+import SearchHistory from '../models/SearchHistory.js';
+import SavedSearch from '../models/SavedSearch.js';
 
 dotenv.config();
 
@@ -23,7 +25,7 @@ const sequelize = new Sequelize(
 );
 
 // Initialize models
-const modelDefiners = [User, Category, Material];
+const modelDefiners = [User, Category, Material, SearchHistory, SavedSearch];
 
 // Run init functions on all models
 for (const modelDefiner of modelDefiners) {

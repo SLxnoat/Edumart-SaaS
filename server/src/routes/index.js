@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth.js';
 import categoryRoutes from './categories.js';
 import materialRoutes from './materials.js';
+import searchRoutes from './search.js';
 // Import other route files as they are created
 // import cartRoutes from './cart.js';
 // import orderRoutes from './orders.js';
@@ -22,6 +23,7 @@ router.get('/health', (req, res) => {
 router.use('/api/auth', authRoutes);
 router.use('/api/categories', categoryRoutes);
 router.use('/api/materials', materialRoutes);
+router.use('/api/search', searchRoutes);
 // Other API routes will be added here as they are created
 // router.use('/api/cart', cartRoutes);
 // router.use('/api/orders', orderRoutes);
@@ -48,6 +50,11 @@ router.get('/api', (req, res) => {
       '/api/materials/featured',
       '/api/materials/category/:categoryId',
       '/api/materials/:id',
+      '/api/materials/suggest',
+      '/api/search/history',
+      '/api/search/history',
+      '/api/search/saved',
+      '/api/search/saved/:id',
       // Other endpoints will be added as they are implemented
       // '/api/cart',
       // '/api/orders',

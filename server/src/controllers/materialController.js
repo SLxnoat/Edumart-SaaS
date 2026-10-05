@@ -20,6 +20,8 @@ export const getMaterials = async (req, res) => {
       isFree,
       isPublished,
       isFeatured,
+      minPrice,
+      maxPrice,
       sortBy = 'createdAt',
       sortOrder = 'DESC'
     } = req.query;
@@ -78,6 +80,17 @@ export const getMaterials = async (req, res) => {
     // Filter by featured status
     if (isFeatured !== undefined) {
       whereClause.isFeatured = isFeatured === 'true';
+    }
+    
+    // Filter by price range
+    if (minPrice !== undefined && minPrice !== '' || maxPrice !== undefined && maxPrice !== '') {
+      whereClause.price = {};
+      if (minPrice !== undefined && minPrice !== '') {
+        whereClause.price[Op.gte] = parseFloat(minPrice);
+      }
+      if (maxPrice !== undefined && maxPrice !== '') {
+        whereClause.price[Op.lte] = parseFloat(maxPrice);
+      }
     }
     
     // Validate sortBy field to prevent SQL injection
@@ -494,4 +507,54 @@ export default {
   deleteMaterial,
   getFeaturedMaterials,
   getMaterialsByCategory,
+};
+
+/**
+ * Get search suggestions for auto-complete
+ */
+export const getSearchSuggestions = async (req, res) => {
+  try {
+    const { query = '' } = req.query;
+    
+    if (!query || query.trim() === '') {
+      return res.status(200).json({
+        success: true,
+        suggestions: [],
+      });
+    }
+    
+    const searchTerm = query.trim();
+    
+    // Search in title and shortDescription for suggestions
+    const materials = await Material.findAll({
+      where: {
+        [Op.or]: [
+          { title: { [Op.like]: `%${searchTerm}%` } },
+          { shortDescription: { [Op.like]: `%${searchTerm}%` } },
+        ],
+        isPublished: true, // Only show published materials in suggestions
+      },
+      attributes: ['id', 'title', 'shortDescription'],
+      limit: 10,
+      order: [['title', 'ASC']],
+    });
+    
+    const suggestions = materials.map(material => ({
+      id: material.id,
+      title: material.title,
+      shortDescription: material.shortDescription,
+    }));
+    
+    res.status(200).json({
+      success: true,
+      suggestions,
+    });
+  } catch (error) {
+    console.error('Get search suggestions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch search suggestions',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
 };

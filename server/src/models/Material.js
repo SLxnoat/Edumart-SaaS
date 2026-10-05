@@ -112,6 +112,14 @@ const Material = sequelize.define('Material', {
   tableName: 'materials',
   timestamps: true,
   underscored: true,
+  indexes: [
+    { fields: ['title'] },
+    { fields: ['subject'] },
+    { fields: ['gradeLevel'] },
+    { fields: ['examYear'] },
+    { fields: ['materialType'] },
+    { fields: ['price'] },
+  ],
 });
 
 // Define associations

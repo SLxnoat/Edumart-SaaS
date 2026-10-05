@@ -7,11 +7,11 @@ on:
     branches: [main, master]
 
 jobs:
-  build-and-test:
+  build-test-and-lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x]
+        node-version: [18.x, 20.x]
 
     steps:
       - name: Checkout repository
@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Lint codebase
+        run: npm run lint
+
       - name: Run backend tests
         run: npm --workspace server test
 
@@ -34,3 +37,19 @@ jobs:
 
       - name: Build frontend
         run: npm --workspace client run build
+
+      - name: Audit dependencies for vulnerabilities
+        run: npm audit --production --audit-level=high
+
+      - name: Build Docker images
+        run: docker compose build
+
+      # Optional: Upload test coverage (if we have it set up)
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     files: ./coverage/*.json
+      #     flags: unittests
+      #     name: codecov-umbrella
+      #     fail_ci_if_error: true
+
