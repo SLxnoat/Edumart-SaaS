@@ -1,4 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom';
+import Chatbot from './components/Chatbot';
 
 function HomePage() {
   return (
@@ -60,11 +61,14 @@ function ProfilePage() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/catalog" element={<CatalogPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Routes>
+      <Chatbot />
+    </>
   );
 }

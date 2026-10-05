@@ -12,6 +12,7 @@ import orderFactory from '../models/Order.js';
 import orderItemFactory from '../models/OrderItem.js';
 import notificationFactory from '../models/Notification.js';
 import reviewFactory from '../models/Review.js';
+import chatbotInteractionFactory from '../models/ChatbotInteraction.js';
 
 dotenv.config();
 
@@ -44,9 +45,10 @@ const Order = orderFactory(sequelize, Sequelize.DataTypes);
 const OrderItem = orderItemFactory(sequelize, Sequelize.DataTypes);
 const Notification = notificationFactory(sequelize, Sequelize.DataTypes);
 const Review = reviewFactory(sequelize, Sequelize.DataTypes);
+const ChatbotInteraction = chatbotInteractionFactory(sequelize, Sequelize.DataTypes);
 
 // Call associate methods
-[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch, Order, OrderItem, Notification, Review].forEach(model => {
+[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch, Order, OrderItem, Notification, Review, ChatbotInteraction].forEach(model => {
   if (model.associate) {
     model.associate({
       User,
@@ -61,6 +63,7 @@ const Review = reviewFactory(sequelize, Sequelize.DataTypes);
       OrderItem,
       Notification,
       Review,
+      ChatbotInteraction,
     });
   }
 });

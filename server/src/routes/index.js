@@ -9,6 +9,7 @@ import paymentRoutes from './payment.js';
 import orderRoutes from './orders.js';
 import adminRoutes from './admin.js';
 import moderationRoutes from './moderation.js';
+import chatbotRoutes from './chatbot.js';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.use('/api/checkout', checkoutRoutes);
 router.use('/api/payment', paymentRoutes);
 router.use('/api/orders', orderRoutes);
 router.use('/api/admin', adminRoutes);
+router.use('/api/chatbot', chatbotRoutes);
 
 // Root API endpoint
 router.get('/api', (req, res) => {
@@ -79,9 +81,11 @@ router.get('/api', (req, res) => {
       '/api/search/history',
       '/api/search/saved',
       '/api/search/saved/:id',
+      '/api/chatbot/message',
+      '/api/chatbot/history/:sessionId',
+      '/api/chatbot/feedback/:id',
       // Other endpoints will be added as they are implemented
       // '/api/payments',
-      // '/api/chatbot',
     ],
   });
 });
