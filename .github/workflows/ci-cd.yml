@@ -39,7 +39,7 @@ jobs:
         run: npm --workspace client run build
 
       - name: Audit dependencies for vulnerabilities
-        run: npm audit --production --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Build Docker images
         run: docker compose build
@@ -52,4 +52,3 @@ jobs:
       #     flags: unittests
       #     name: codecov-umbrella
       #     fail_ci_if_error: true
-

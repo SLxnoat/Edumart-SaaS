@@ -1,39 +1,39 @@
 import { Sequelize, DataTypes } from 'sequelize';
-import sequelize from '../config/db.js';
-import User from './User.js';
 
-const SavedSearch = sequelize.define('SavedSearch', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  query: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true,
+export default (sequelize, DataTypes) => {
+  const SavedSearch = sequelize.define('SavedSearch', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
     },
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      notEmpty: true,
+    query: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
     },
-  },
-}, {
-  tableName: 'saved_searches',
-  timestamps: true,
-  underscored: true,
-});
-
-// Define associations
-SavedSearch.associate = (models) => {
-  SavedSearch.belongsTo(models.User, {
-    foreignKey: 'userId',
-    as: 'user',
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+  }, {
+    tableName: 'saved_searches',
+    timestamps: true,
+    underscored: true,
   });
-};
 
-export default SavedSearch;
+  // Define associations
+  SavedSearch.associate = (models) => {
+    SavedSearch.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user',
+    });
+  };
+
+  return SavedSearch;
+};

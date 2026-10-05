@@ -1,8 +1,5 @@
 import app from './app.js';
 import sequelize from './config/db.js';
-import User from './models/User.js';
-import Category from './models/Category.js';
-import Material from './models/Material.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -23,7 +20,10 @@ const syncDatabase = async () => {
 
 async function startServer() {
   try {
-    await syncDatabase();
+    // Only sync the database if we are not in test environment
+    if (process.env.NODE_ENV !== 'test') {
+      await syncDatabase();
+    }
     
     app.listen(PORT, () => {
       console.log(`EduMart server running on http://localhost:${PORT}`);

@@ -1,10 +1,13 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
-import User from '../models/User.js';
-import Category from '../models/Category.js';
-import Material from '../models/Material.js';
-import SearchHistory from '../models/SearchHistory.js';
-import SavedSearch from '../models/SavedSearch.js';
+import userFactory from '../models/User.js';
+import categoryFactory from '../models/Category.js';
+import materialFactory from '../models/Material.js';
+import cartFactory from '../models/Cart.js';
+import cartItemFactory from '../models/CartItem.js';
+import couponFactory from '../models/Coupon.js';
+import searchHistoryFactory from '../models/SearchHistory.js';
+import savedSearchFactory from '../models/SavedSearch.js';
 
 dotenv.config();
 
@@ -25,27 +28,30 @@ const sequelize = new Sequelize(
 );
 
 // Initialize models
-const modelDefiners = [User, Category, Material, SearchHistory, SavedSearch];
+const User = userFactory(sequelize, Sequelize.DataTypes);
+const Category = categoryFactory(sequelize, Sequelize.DataTypes);
+const Material = materialFactory(sequelize, Sequelize.DataTypes);
+const Cart = cartFactory(sequelize, Sequelize.DataTypes);
+const CartItem = cartItemFactory(sequelize, Sequelize.DataTypes);
+const Coupon = couponFactory(sequelize, Sequelize.DataTypes);
+const SearchHistory = searchHistoryFactory(sequelize, Sequelize.DataTypes);
+const SavedSearch = savedSearchFactory(sequelize, Sequelize.DataTypes);
 
-// Run init functions on all models
-for (const modelDefiner of modelDefiners) {
-  modelDefiner(sequelize);
-}
-
-// Execute synchronization
-const syncDatabase = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-    
-    // Sync all models
-    await sequelize.sync({ alter: true }); // Use alter: true for development, false for production
-    console.log('All models were synchronized successfully.');
-  } catch (error) {
-    console.error('Unable to connect to the database:', error);
-    process.exit(1);
+// Call associate methods
+[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch].forEach(model => {
+  if (model.associate) {
+    model.associate({
+      User,
+      Category,
+      Material,
+      Cart,
+      CartItem,
+      Coupon,
+      SearchHistory,
+      SavedSearch,
+    });
   }
-};
+});
 
-export { sequelize, syncDatabase };
+export { sequelize };
 export default sequelize;
