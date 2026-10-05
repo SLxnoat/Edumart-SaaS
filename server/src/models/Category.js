@@ -20,7 +20,7 @@ export default (sequelize, DataTypes) => {
     parentId: {
       type: DataTypes.UUID,
       references: {
-        model: 'categories',
+        model: 'product_categories',
         key: 'id',
       },
       allowNull: true, // Null for top-level categories
@@ -41,7 +41,7 @@ export default (sequelize, DataTypes) => {
       defaultValue: 0,
     },
   }, {
-    tableName: 'categories',
+    tableName: 'product_categories',
     timestamps: true,
     underscored: true,
   });

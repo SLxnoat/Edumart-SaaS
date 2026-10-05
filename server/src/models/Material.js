@@ -3,12 +3,12 @@ import { Sequelize, DataTypes } from 'sequelize';
 export default (sequelize, DataTypes) => {
   const Material = sequelize.define('Material', {
     id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     title: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
         notEmpty: true,
@@ -17,15 +17,15 @@ export default (sequelize, DataTypes) => {
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      allowNull: false,
     },
     shortDescription: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
+      allowNull: false,
       defaultValue: 0.00,
       validate: {
         min: 0,
@@ -38,35 +38,45 @@ export default (sequelize, DataTypes) => {
     },
     // For educational materials
     subject: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    gradeLevel: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    examYear: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
     },
-    materialType: {
-      type: DataTypes.ENUM('note', 'video', 'quiz', 'assignment', 'textbook', 'other'),
-      allowNull: true,
+    grade_level: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    exam_year: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    categoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'product_categories',
+        key: 'id',
+      },
+    },
+    product_type: {
+      type: DataTypes.ENUM("note", "video", "quiz", "assignment", "textbook", "other"),
+      allowNull: false,
       defaultValue: 'other',
     },
     // File/image handling
     thumbnailUrl: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     previewImages: {
       type: DataTypes.JSON, // Array of image URLs
-      allowNull: true,
+      allowNull: false,
       defaultValue: [],
     },
     fileAttachments: {
       type: DataTypes.JSON, // Array of file objects {name, url, type, size}
-      allowNull: true,
+      allowNull: false,
       defaultValue: [],
     },
     // Status and visibility
@@ -81,14 +91,17 @@ export default (sequelize, DataTypes) => {
       defaultValue: false,
     },
     // Moderation
-    approvalStatus: {
+    is_approved: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       allowNull: false,
       defaultValue: 'pending',
     },
     moderationFeedback: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      allowNull: false,
     },
     // Metadata
     viewCount: {
@@ -103,7 +116,7 @@ export default (sequelize, DataTypes) => {
     },
     // For tracking
     createdBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       references: {
         model: 'users',
         key: 'id',
@@ -111,29 +124,27 @@ export default (sequelize, DataTypes) => {
       allowNull: false,
     },
     updatedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       references: {
         model: 'users',
         key: 'id',
       },
-      allowNull: true,
+      allowNull: false,
     },
   }, {
-    tableName: 'materials',
+    tableName: 'products',
     timestamps: true,
     underscored: true,
     indexes: [
       { fields: ['title'] },
       { fields: ['subject'] },
-      { fields: ['gradeLevel'] },
-      { fields: ['examYear'] },
-      { fields: ['materialType'] },
+      { fields: ['grade_level'] },
+      { fields: ['exam_year'] },
+      { fields: ['product_type'] },
       { fields: ['price'] },
-      { fields: ['approvalStatus'] },
+      { fields: ['is_approved'] },
     ],
   });
-
-  // Define associations
   Material.associate = (models) => {
     Material.belongsTo(models.Category, {
       foreignKey: 'categoryId',
@@ -160,6 +171,5 @@ export default (sequelize, DataTypes) => {
       as: 'reviews',
     });
   };
-
   return Material;
 };
