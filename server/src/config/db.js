@@ -1,5 +1,8 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+import User from '../models/User.js';
+import Category from '../models/Category.js';
+import Material from '../models/Material.js';
 
 dotenv.config();
 
@@ -19,4 +22,28 @@ const sequelize = new Sequelize(
   }
 );
 
+// Initialize models
+const modelDefiners = [User, Category, Material];
+
+// Run init functions on all models
+for (const modelDefiner of modelDefiners) {
+  modelDefiner(sequelize);
+}
+
+// Execute synchronization
+const syncDatabase = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection established successfully.');
+    
+    // Sync all models
+    await sequelize.sync({ alter: true }); // Use alter: true for development, false for production
+    console.log('All models were synchronized successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    process.exit(1);
+  }
+};
+
+export { sequelize, syncDatabase };
 export default sequelize;
