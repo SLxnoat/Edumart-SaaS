@@ -2,15 +2,14 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy the root package files (workspace definition)
-COPY package*.json ./
-# Install all dependencies (this will populate node_modules in the correct workspace locations)
+# Copy the entire project
+COPY . .
+# Install all dependencies (this will populate the root node_modules)
 RUN npm install
 
-# Copy the client source code
-COPY . .
-# Build only the client workspace
-RUN npm run build --workspace client
+# Change to client directory and build
+WORKDIR /app/client
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine
