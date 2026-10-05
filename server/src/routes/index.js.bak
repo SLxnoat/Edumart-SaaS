@@ -6,9 +6,7 @@ import searchRoutes from './search.js';
 import cartRoutes from './cart.js';
 import checkoutRoutes from './checkout.js';
 import paymentRoutes from './payment.js';
-// Import other route files as they are created
-// import orderRoutes from './orders.js';
-// etc.
+import orderRoutes from './orders.js';
 
 const router = Router();
 
@@ -28,9 +26,7 @@ router.use('/api/search', searchRoutes);
 router.use('/api/cart', cartRoutes);
 router.use('/api/checkout', checkoutRoutes);
 router.use('/api/payment', paymentRoutes);
-// Other API routes will be added here as they are created
-// router.use('/api/orders', orderRoutes);
-// etc.
+router.use('/api/orders', orderRoutes);
 
 // Root API endpoint
 router.get('/api', (req, res) => {
@@ -62,14 +58,19 @@ router.get('/api', (req, res) => {
       '/api/checkout/guest',
       '/api/checkout/user',
       '/api/payment/create-intent',
+      '/api/payment/refund/:orderId',
+      '/api/payment/verify/:paymentIntentId',
       '/api/payment/webhook',
+      '/api/orders/history',
+      '/api/orders/:id',
+      '/api/orders/:id/status',
+      '/api/orders/:id',
+      '/api/orders/:id/invoice',
       '/api/search/history',
       '/api/search/history',
       '/api/search/saved',
       '/api/search/saved/:id',
       // Other endpoints will be added as they are implemented
-      // '/api/cart',
-      // '/api/orders',
       // '/api/payments',
       // '/api/admin',
       // '/api/chatbot',

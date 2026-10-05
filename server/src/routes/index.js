@@ -7,6 +7,7 @@ import cartRoutes from './cart.js';
 import checkoutRoutes from './checkout.js';
 import paymentRoutes from './payment.js';
 import orderRoutes from './orders.js';
+import adminRoutes from './admin.js';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/api/cart', cartRoutes);
 router.use('/api/checkout', checkoutRoutes);
 router.use('/api/payment', paymentRoutes);
 router.use('/api/orders', orderRoutes);
+router.use('/api/admin', adminRoutes);
 
 // Root API endpoint
 router.get('/api', (req, res) => {
@@ -66,13 +68,14 @@ router.get('/api', (req, res) => {
       '/api/orders/:id/status',
       '/api/orders/:id',
       '/api/orders/:id/invoice',
+      '/api/admin/stats',
+      '/api/admin/users',
       '/api/search/history',
       '/api/search/history',
       '/api/search/saved',
       '/api/search/saved/:id',
       // Other endpoints will be added as they are implemented
       // '/api/payments',
-      // '/api/admin',
       // '/api/chatbot',
     ],
   });
