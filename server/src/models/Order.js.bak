@@ -74,19 +74,6 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    // Tracking
-    trackingNumber: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    shippedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    deliveredAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
   }, {
     tableName: 'orders',
     timestamps: true,

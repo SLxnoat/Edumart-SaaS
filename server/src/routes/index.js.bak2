@@ -58,8 +58,6 @@ router.get('/api', (req, res) => {
       '/api/checkout/guest',
       '/api/checkout/user',
       '/api/payment/create-intent',
-      '/api/payment/refund/:orderId',
-      '/api/payment/verify/:paymentIntentId',
       '/api/payment/webhook',
       '/api/orders/history',
       '/api/orders/:id',

@@ -396,3 +396,9 @@ export const verifyPaymentIntent = async (req, res) => {
   }
 };
 
+module.exports = {
+  createPaymentIntent,
+  handleWebhook,
+  refundPayment,
+  verifyPaymentIntent,
+};

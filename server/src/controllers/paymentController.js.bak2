@@ -172,66 +172,6 @@ export const createPaymentIntent = async (req, res) => {
 };
 
 /**
- * Refund a payment for an order (user can request refund if they own the order and it's paid)
- */
-export const refundPayment = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { orderId } = req.params;
-
-    const order = await Order.findOne({
-      where: { id: orderId, userId },
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found or access denied',
-      });
-    }
-
-    if (order.paymentStatus !== 'paid') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only paid orders can be refunded',
-      });
-    }
-
-    if (!order.paymentIntentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No payment intent found for this order',
-      });
-    }
-
-    // Create a refund via Stripe (full refund by default)
-    const refund = await stripe.refunds.create({
-      payment_intent: order.paymentIntentId,
-      // amount: optional for partial refund
-    });
-
-    // Update order
-    await order.update({
-      paymentStatus: 'refunded',
-      status: 'cancelled', // or maybe refunded separate status; we'll set to cancelled
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Payment refunded successfully',
-      refund,
-    });
-  } catch (error) {
-    console.error('Refund payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to refund payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
  * Handle Stripe webhook events
  */
 export const handleWebhook = async (req, res) => {
@@ -259,21 +199,10 @@ export const handleWebhook = async (req, res) => {
     case 'charge.refunded':
       // Handle refund from Stripe (could be partial or full)
       const charge = event.data.object;
-      // The charge object contains refunded amount and maybe we can lookup order by metadata
-      // We'll try to find order by paymentIntentId from charge.payment_intent
-      const paymentIntentId = charge.payment_intent;
-      if (paymentIntentId) {
-        const order = await Order.findOne({ where: { paymentIntentId } });
-        if (order) {
-          // If refund amount equals order amount, consider fully refunded
-          // For simplicity, we'll set paymentStatus to refunded and status to cancelled
-          await order.update({
-            paymentStatus: 'refunded',
-            status: 'cancelled',
-          });
-          console.log(`Order ${order.id} marked as refunded due to charge.refunded`);
-        }
-      }
+      // We could lookup order by metadata or by paymentIntentId
+      // For simplicity, we'll lookup order by paymentIntentId if stored in charge
+      // But charge may not have order metadata; we can skip for now.
+      console.log(`Charge refunded: ${charge.id}`);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -366,33 +295,3 @@ const handlePaymentIntentFailed = async (paymentIntent) => {
     console.error(`Error handling payment intent failed: ${error.message}`);
   }
 };
-
-/**
- * Verify a payment intent with Stripe (optional endpoint for transaction verification)
- */
-export const verifyPaymentIntent = async (req, res) => {
-  try {
-    const { paymentIntentId } = req.params;
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    res.status(200).json({
-      success: true,
-      paymentIntent: {
-        id: paymentIntent.id,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        status: paymentIntent.status,
-        // we could also include metadata if needed
-      },
-    });
-  } catch (error) {
-    console.error('Verify payment intent error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to verify payment intent',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
