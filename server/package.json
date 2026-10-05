@@ -19,6 +19,7 @@
     "morgan": "^1.10.0",
     "mysql2": "^3.4.1",
     "sequelize": "^6.37.8",
+    "stripe": "^23.0.0",
     "uuid": "^14.0.2"
   },
   "devDependencies": {

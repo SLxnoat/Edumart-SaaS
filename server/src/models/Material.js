@@ -140,6 +140,10 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'materialId',
       as: 'cartItems',
     });
+    Material.hasMany(models.OrderItem, {
+      foreignKey: 'materialId',
+      as: 'orderItems',
+    });
   };
 
   return Material;

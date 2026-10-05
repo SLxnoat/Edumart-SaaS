@@ -5,6 +5,7 @@ import materialRoutes from './materials.js';
 import searchRoutes from './search.js';
 import cartRoutes from './cart.js';
 import checkoutRoutes from './checkout.js';
+import paymentRoutes from './payment.js';
 // Import other route files as they are created
 // import orderRoutes from './orders.js';
 // etc.
@@ -26,6 +27,7 @@ router.use('/api/materials', materialRoutes);
 router.use('/api/search', searchRoutes);
 router.use('/api/cart', cartRoutes);
 router.use('/api/checkout', checkoutRoutes);
+router.use('/api/payment', paymentRoutes);
 // Other API routes will be added here as they are created
 // router.use('/api/orders', orderRoutes);
 // etc.
@@ -59,6 +61,8 @@ router.get('/api', (req, res) => {
       '/api/cart/summary',
       '/api/checkout/guest',
       '/api/checkout/user',
+      '/api/payment/create-intent',
+      '/api/payment/webhook',
       '/api/search/history',
       '/api/search/history',
       '/api/search/saved',

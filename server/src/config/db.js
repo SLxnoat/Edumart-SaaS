@@ -8,6 +8,8 @@ import cartItemFactory from '../models/CartItem.js';
 import couponFactory from '../models/Coupon.js';
 import searchHistoryFactory from '../models/SearchHistory.js';
 import savedSearchFactory from '../models/SavedSearch.js';
+import orderFactory from '../models/Order.js';
+import orderItemFactory from '../models/OrderItem.js';
 
 dotenv.config();
 
@@ -36,9 +38,11 @@ const CartItem = cartItemFactory(sequelize, Sequelize.DataTypes);
 const Coupon = couponFactory(sequelize, Sequelize.DataTypes);
 const SearchHistory = searchHistoryFactory(sequelize, Sequelize.DataTypes);
 const SavedSearch = savedSearchFactory(sequelize, Sequelize.DataTypes);
+const Order = orderFactory(sequelize, Sequelize.DataTypes);
+const OrderItem = orderItemFactory(sequelize, Sequelize.DataTypes);
 
 // Call associate methods
-[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch].forEach(model => {
+[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch, Order, OrderItem].forEach(model => {
   if (model.associate) {
     model.associate({
       User,
@@ -49,6 +53,8 @@ const SavedSearch = savedSearchFactory(sequelize, Sequelize.DataTypes);
       Coupon,
       SearchHistory,
       SavedSearch,
+      Order,
+      OrderItem,
     });
   }
 });
