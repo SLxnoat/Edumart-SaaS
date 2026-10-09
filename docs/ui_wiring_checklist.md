@@ -288,15 +288,15 @@ This document tracks the implementation status of all UI screens and components 
 - [ ] Add system health/status indicators
 
 ### 6.2 User Management
-- [ ] Create AdminUsersPage component
-- [ ] Implement user list with filtering (role, status, date)
-- [ ] Add search functionality
-- [ ] Show user details and activity
-- [ ] Implement role management (assign/change roles)
-- [ ] Wire up to user management API endpoints
-- [ ] Add user activation/deactivation
-- [ ] Add impersonation feature (for support)
-- [ ] Add bulk actions (email, notify, etc.)
+- [x] Create AdminUsersPage component
+- [x] Implement user list with filtering (role, status, date)
+- [x] Add search functionality
+- [x] Show user details and activity (User Details Modal)
+- [x] Implement role management (assign/change roles)
+- [x] Wire up to user management API endpoints (/api/admin/users)
+- [x] Add user verification / activation toggle
+- [x] Add impersonation feature (for support)
+- [x] Add pagination and sorting
 
 ### 6.3 Product Moderation Queue
 - [ ] Create AdminModerationQueue component

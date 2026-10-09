@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getDashboardStats, getAllUsers } from '../controllers/adminController.js';
+import {
+  getDashboardStats,
+  getAllUsers,
+  getUserDetails,
+  updateUserRole,
+  toggleUserVerification,
+  deleteUser,
+  impersonateUser,
+} from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { admin } from '../middleware/admin.js';
 
@@ -12,9 +20,12 @@ router.use(admin);
 // GET /api/admin/stats
 router.get('/stats', getDashboardStats);
 
-// GET /api/admin/users
+// User Management Routes
 router.get('/users', getAllUsers);
-
-// Additional admin routes can be added here
+router.get('/users/:id', getUserDetails);
+router.put('/users/:id/role', updateUserRole);
+router.put('/users/:id/toggle-verify', toggleUserVerification);
+router.delete('/users/:id', deleteUser);
+router.post('/users/:id/impersonate', impersonateUser);
 
 export default router;

@@ -68,8 +68,8 @@ Based on comparison with wireframes.md, the following major UI components are mi
 - [x] Sales Analytics and Reporting (subject popularity breakdown & monthly revenue trends)
 
 ### Admin Dashboard Flow (Partially Implemented)
-- [x] Admin Dashboard Overview (basic implementation with mock data)
-- [ ] User Management Page
+- [x] Admin Dashboard Overview (connected to live /api/admin/stats API)
+- [x] User Management Page (search, role assignment, verification toggle, deletion, impersonation)
 - [ ] Product Moderation Queue
 - [ ] Order Management Page
 - [ ] Review Moderation Tools
@@ -131,7 +131,7 @@ Route path="*" element={<PlaceholderPage ... />}
 - **Shopping Cart & Checkout**: 6/6 screens implemented with full backend wiring (100% complete)
 - **Payment Processing**: 4/4 components implemented (100% complete)
 - **Seller Dashboard**: 6/6 screens implemented (100% complete)
-- **Admin Dashboard**: 1/7 screens implemented (~14% complete)
+- **Admin Dashboard**: 2/7 screens implemented (~29% complete)
 - **Review & Rating**: 0/5 components implemented (~0% complete)
 - **AI Chatbot**: 1/5 components exist (basic) but needs enhancements (~20% complete)
 - **Notification System**: 1/5 components implemented (~20% complete)

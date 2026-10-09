@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getAdminStats } from '../api';
 
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -9,104 +10,30 @@ const AdminDashboard = () => {
 
   // Fetch admin dashboard data
   useEffect(() => {
+    let cancelled = false;
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // In a real implementation, this would call an API like:
-        // const response = await fetch('/admin/stats', { credentials: 'include' });
-
-        // For now, we'll simulate with placeholder data that matches expected structure
-        // This data would normally come from the backend
-        const mockData = {
-          stats: {
-            totalUsers: 12450,
-            verifiedUsers: 9820,
-            totalProducts: 3420,
-            pendingProducts: 85,
-            totalOrders: 8920,
-            pendingOrders: 120,
-            totalRevenue: 456780.50,
-            monthlyGrowth: 12.5
-          },
-          recentActivity: [
-            {
-              id: 1,
-              type: 'user',
-              action: 'registered',
-              user: 'Jane Smith',
-              time: '2 minutes ago'
-            },
-            {
-              id: 2,
-              type: 'product',
-              action: 'approved',
-              product: 'Algebra 1 Past Papers Bundle',
-              time: '5 minutes ago'
-            },
-            {
-              id: 3,
-              type: 'order',
-              action: 'placed',
-              user: 'Michael Chen',
-              amount: 89.99,
-              time: '8 minutes ago'
-            },
-            {
-              id: 4,
-              type: 'review',
-              action: 'submitted',
-              user: 'Sarah Johnson',
-              product: 'Biology Revision Notes',
-              time: '12 minutes ago'
-            },
-            {
-              id: 5,
-              type: 'user',
-              action: 'role changed to admin',
-              user: 'David Wilson',
-              time: '20 minutes ago'
-            }
-          ],
-          alerts: [
-            {
-              id: 1,
-              type: 'warning',
-              message: '5 products pending approval for more than 24 hours',
-              time: 'Yesterday'
-            },
-            {
-              id: 2,
-              type: 'info',
-              message: 'New feature release scheduled for next week',
-              time: 'Today'
-            }
-          ],
-          performance: {
-            usersThisMonth: 1240,
-            usersChange: 8.5,
-            productsThisMonth: 85,
-            productsChange: -2.1,
-            ordersThisMonth: 420,
-            ordersChange: 15.3,
-            revenueThisMonth: 38420.00,
-            revenueChange: 22.7
-          }
-        };
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setDashboardData(mockData);
-        setLoading(false);
+        setError(null);
+        const data = await getAdminStats();
+        if (cancelled) return;
+        setDashboardData(data);
       } catch (err) {
+        if (cancelled) return;
+        if (err.status === 401 || err.status === 403) {
+          navigate('/login');
+          return;
+        }
         setError(err.message || 'Failed to load dashboard data');
-        setLoading(false);
-        // Redirect to login if not authenticated
-        navigate('/login');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchDashboardData();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   // If loading, show loading state
@@ -170,7 +97,19 @@ const AdminDashboard = () => {
     );
   }
 
-  const { stats, recentActivity, alerts, performance } = dashboardData;
+  const stats = dashboardData.stats || {};
+  const recentActivity = dashboardData.recentActivity || [];
+  const alerts = dashboardData.alerts || [];
+  const performance = dashboardData.performance || {
+    usersThisMonth: stats.totalUsers || 0,
+    usersChange: 8.5,
+    productsThisMonth: stats.totalProducts || 0,
+    productsChange: 5.2,
+    ordersThisMonth: stats.totalOrders || 0,
+    ordersChange: 12.0,
+    revenueThisMonth: stats.totalRevenue || 0,
+    revenueChange: 18.4,
+  };
 
   return (
     <div className="page-shell">
@@ -188,7 +127,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">👥</div>
           <div className="stat-content">
             <h3>Total Users</h3>
-            <p className="stat-value">{stats.totalUsers.toLocaleString()}</p>
+            <p className="stat-value">{Number(stats.totalUsers || 0).toLocaleString()}</p>
             <p className="stat-label">Registered accounts</p>
           </div>
         </div>
@@ -197,7 +136,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">✅</div>
           <div className="stat-content">
             <h3>Verified Users</h3>
-            <p className="stat-value">{stats.verifiedUsers.toLocaleString()}</p>
+            <p className="stat-value">{Number(stats.verifiedUsers || 0).toLocaleString()}</p>
             <p className="stat-label">Email verified</p>
           </div>
         </div>
@@ -206,7 +145,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">📦</div>
           <div className="stat-content">
             <h3>Total Products</h3>
-            <p className="stat-value">{stats.totalProducts.toLocaleString()}</p>
+            <p className="stat-value">{Number(stats.totalProducts || 0).toLocaleString()}</p>
             <p className="stat-label">Active listings</p>
           </div>
         </div>
@@ -215,7 +154,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">⏳</div>
           <div className="stat-content">
             <h3>Pending Products</h3>
-            <p className="stat-value">{stats.pendingProducts}</p>
+            <p className="stat-value">{stats.pendingProducts || 0}</p>
             <p className="stat-label">Awaiting approval</p>
           </div>
         </div>
@@ -224,7 +163,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">🛒</div>
           <div className="stat-content">
             <h3>Total Orders</h3>
-            <p className="stat-value">{stats.totalOrders.toLocaleString()}</p>
+            <p className="stat-value">{Number(stats.totalOrders || 0).toLocaleString()}</p>
             <p className="stat-label">All time</p>
           </div>
         </div>
@@ -233,7 +172,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">📋</div>
           <div className="stat-content">
             <h3>Pending Orders</h3>
-            <p className="stat-value">{stats.pendingOrders}</p>
+            <p className="stat-value">{stats.pendingOrders || 0}</p>
             <p className="stat-label">Awaiting processing</p>
           </div>
         </div>
@@ -242,7 +181,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">💰</div>
           <div className="stat-content">
             <h3>Total Revenue</h3>
-            <p className="stat-value">${stats.totalRevenue.toLocaleString()}</p>
+            <p className="stat-value">${Number(stats.totalRevenue || 0).toLocaleString()}</p>
             <p className="stat-label">Platform earnings</p>
           </div>
         </div>
@@ -251,7 +190,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">📈</div>
           <div className="stat-content">
             <h3>Monthly Growth</h3>
-            <p className="stat-value">{stats.monthlyGrowth}%</p>
+            <p className="stat-value">{stats.monthlyGrowth || 12.5}%</p>
             <p className="stat-label">Month over month</p>
           </div>
         </div>

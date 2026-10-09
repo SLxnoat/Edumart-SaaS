@@ -77,3 +77,17 @@ export const getSellerOrders = () => apiFetch('/api/seller/orders', { auth: true
 export const getSellerEarnings = () => apiFetch('/api/seller/earnings', { auth: true });
 export const requestPayout = (payload) => apiFetch('/api/seller/payout', { method: 'POST', body: payload, auth: true });
 export const getSellerAnalytics = () => apiFetch('/api/seller/analytics', { auth: true });
+
+// Admin APIs
+export const getAdminStats = () => apiFetch('/api/admin/stats', { auth: true });
+export const getAdminUsers = (params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, val]) => val !== undefined && val !== null && val !== '')
+  ).toString();
+  return apiFetch(`/api/admin/users${query ? `?${query}` : ''}`, { auth: true });
+};
+export const getAdminUser = (id) => apiFetch(`/api/admin/users/${id}`, { auth: true });
+export const updateUserRole = (id, role) => apiFetch(`/api/admin/users/${id}/role`, { method: 'PUT', body: { role }, auth: true });
+export const toggleUserVerification = (id) => apiFetch(`/api/admin/users/${id}/toggle-verify`, { method: 'PUT', auth: true });
+export const deleteAdminUser = (id) => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE', auth: true });
+export const impersonateUser = (id) => apiFetch(`/api/admin/users/${id}/impersonate`, { method: 'POST', auth: true });
