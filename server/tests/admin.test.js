@@ -13,6 +13,9 @@ test('admin endpoints require authentication and are registered', async () => {
 
     const resStats = await fetch(`http://127.0.0.1:${port}/api/admin/stats`);
     assert.equal(resStats.status, 401, 'Admin stats endpoint should require auth (401)');
+
+    const resMod = await fetch(`http://127.0.0.1:${port}/api/admin/moderation`);
+    assert.equal(resMod.status, 401, 'Admin moderation endpoint should require auth (401)');
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

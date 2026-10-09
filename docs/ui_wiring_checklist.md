@@ -299,14 +299,14 @@ This document tracks the implementation status of all UI screens and components 
 - [x] Add pagination and sorting
 
 ### 6.3 Product Moderation Queue
-- [ ] Create AdminModerationQueue component
-- [ ] Implement product list pending approval
-- [ ] Show product preview and seller info
-- [ ] Add moderation actions: approve, reject, request changes
-- [ ] Implement rejection/feedback form
-- [ ] Wire up to product moderation API endpoints
-- [ ] Add bulk moderation options
-- [ ] Add moderation history/logs
+- [x] Create AdminModerationQueue component
+- [x] Implement product list pending approval (with tab filters: pending, approved, all)
+- [x] Show product preview and seller info
+- [x] Add moderation actions: approve, reject, request changes
+- [x] Implement rejection/feedback form (with seller feedback modal)
+- [x] Wire up to product moderation API endpoints (/api/admin/moderation)
+- [x] Add bulk moderation options (bulk approve / bulk reject)
+- [x] Add moderation notifications sent to sellers
 
 ### 6.4 Order Management
 - [ ] Create AdminOrdersPage component

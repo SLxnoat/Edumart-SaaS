@@ -7,6 +7,10 @@ import {
   toggleUserVerification,
   deleteUser,
   impersonateUser,
+  getModerationQueue,
+  approveProduct,
+  rejectProduct,
+  bulkModerateProducts,
 } from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { admin } from '../middleware/admin.js';
@@ -27,5 +31,11 @@ router.put('/users/:id/role', updateUserRole);
 router.put('/users/:id/toggle-verify', toggleUserVerification);
 router.delete('/users/:id', deleteUser);
 router.post('/users/:id/impersonate', impersonateUser);
+
+// Product Moderation Queue Routes
+router.get('/moderation', getModerationQueue);
+router.put('/moderation/:id/approve', approveProduct);
+router.put('/moderation/:id/reject', rejectProduct);
+router.post('/moderation/bulk', bulkModerateProducts);
 
 export default router;

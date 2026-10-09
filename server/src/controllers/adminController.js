@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 import sequelize from '../config/db.js';
 
-const { User, Order, Material } = sequelize.models;
+const { User, Order, Material, Category, Notification } = sequelize.models;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -359,6 +359,212 @@ export const impersonateUser = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/moderation
+ * List products pending moderation (or filtered by status)
+ */
+export const getModerationQueue = async (req, res) => {
+  try {
+    const { status = 'pending', search, page = 1, limit = 10 } = req.query;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const limitNum = parseInt(limit, 10);
+
+    const whereClause = {};
+    if (status === 'pending') {
+      whereClause.isApproved = false;
+    } else if (status === 'approved') {
+      whereClause.isApproved = true;
+    } else if (status === 'inactive') {
+      whereClause.isActive = false;
+    }
+
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      whereClause[Op.or] = [
+        { title: { [Op.like]: q } },
+        { subject: { [Op.like]: q } },
+        { gradeLevel: { [Op.like]: q } },
+      ];
+    }
+
+    const { count, rows: products } = await Material.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'seller',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name'],
+        },
+      ],
+      offset,
+      limit: limitNum,
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.json({
+      success: true,
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: parseInt(page, 10),
+      products: products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        shortDescription: p.shortDescription,
+        price: Number(p.price),
+        subject: p.subject,
+        gradeLevel: p.gradeLevel,
+        examYear: p.examYear,
+        format: p.format,
+        productType: p.productType,
+        isApproved: p.isApproved,
+        isActive: p.isActive,
+        thumbnailUrl: p.thumbnailUrl,
+        createdAt: p.createdAt,
+        seller: p.seller ? {
+          id: p.seller.id,
+          name: `${p.seller.firstName} ${p.seller.lastName}`,
+          email: p.seller.email,
+        } : null,
+        category: p.category?.name || 'General',
+      })),
+    });
+  } catch (error) {
+    console.error('Get moderation queue error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch moderation queue' });
+  }
+};
+
+/**
+ * PUT /api/admin/moderation/:id/approve
+ */
+export const approveProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Material.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    product.isApproved = true;
+    product.isActive = true;
+    await product.save();
+
+    // Create notification for seller
+    try {
+      if (Notification) {
+        await Notification.create({
+          userId: product.sellerId,
+          type: 'system',
+          message: `Your learning material "${product.title}" has been approved and is now live on EduMart!`,
+          relatedId: product.id,
+          relatedType: 'material',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Notification create warning:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Product "${product.title}" was approved successfully`,
+      product: {
+        id: product.id,
+        isApproved: product.isApproved,
+        isActive: product.isActive,
+      },
+    });
+  } catch (error) {
+    console.error('Approve product error:', error);
+    res.status(500).json({ success: false, message: 'Failed to approve product' });
+  }
+};
+
+/**
+ * PUT /api/admin/moderation/:id/reject
+ */
+export const rejectProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Content does not meet marketplace standards or syllabus requirements' } = req.body || {};
+    const product = await Material.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    product.isApproved = false;
+    product.isActive = false;
+    await product.save();
+
+    // Create notification for seller
+    try {
+      if (Notification) {
+        await Notification.create({
+          userId: product.sellerId,
+          type: 'system',
+          message: `Your submission "${product.title}" was rejected by moderation: ${reason}`,
+          relatedId: product.id,
+          relatedType: 'material',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Notification create warning:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Product "${product.title}" was rejected`,
+      reason,
+      product: {
+        id: product.id,
+        isApproved: product.isApproved,
+        isActive: product.isActive,
+      },
+    });
+  } catch (error) {
+    console.error('Reject product error:', error);
+    res.status(500).json({ success: false, message: 'Failed to reject product' });
+  }
+};
+
+/**
+ * POST /api/admin/moderation/bulk
+ */
+export const bulkModerateProducts = async (req, res) => {
+  try {
+    const { ids, action, reason } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide an array of product IDs' });
+    }
+
+    const isApprove = action === 'approve';
+    await Material.update(
+      {
+        isApproved: isApprove,
+        isActive: isApprove,
+      },
+      {
+        where: { id: { [Op.in]: ids } },
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully ${isApprove ? 'approved' : 'rejected'} ${ids.length} products in bulk`,
+      count: ids.length,
+      reason,
+    });
+  } catch (error) {
+    console.error('Bulk moderation error:', error);
+    res.status(500).json({ success: false, message: 'Bulk moderation failed' });
+  }
+};
+
 export default {
   getDashboardStats,
   getAllUsers,
@@ -367,4 +573,8 @@ export default {
   toggleUserVerification,
   deleteUser,
   impersonateUser,
+  getModerationQueue,
+  approveProduct,
+  rejectProduct,
+  bulkModerateProducts,
 };

@@ -91,3 +91,14 @@ export const updateUserRole = (id, role) => apiFetch(`/api/admin/users/${id}/rol
 export const toggleUserVerification = (id) => apiFetch(`/api/admin/users/${id}/toggle-verify`, { method: 'PUT', auth: true });
 export const deleteAdminUser = (id) => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE', auth: true });
 export const impersonateUser = (id) => apiFetch(`/api/admin/users/${id}/impersonate`, { method: 'POST', auth: true });
+
+// Product Moderation APIs
+export const getModerationQueue = (params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, val]) => val !== undefined && val !== null && val !== '')
+  ).toString();
+  return apiFetch(`/api/admin/moderation${query ? `?${query}` : ''}`, { auth: true });
+};
+export const approveModerationProduct = (id) => apiFetch(`/api/admin/moderation/${id}/approve`, { method: 'PUT', auth: true });
+export const rejectModerationProduct = (id, reason) => apiFetch(`/api/admin/moderation/${id}/reject`, { method: 'PUT', body: { reason }, auth: true });
+export const bulkModerateProducts = (ids, action, reason) => apiFetch('/api/admin/moderation/bulk', { method: 'POST', body: { ids, action, reason }, auth: true });
