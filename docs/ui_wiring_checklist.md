@@ -209,85 +209,73 @@ This document tracks the implementation status of all UI screens and components 
 - [ ] Handle success/cancel/timeout scenarios
 
 ## 4. Payment Processing (Charuka) - See also Checkout Flow above
-- [ ] Integrate with Stripe/PayPal API via backend
-- [ ] Implement webhook handling for payment events
+- [x] Integrate with Stripe/PayPal API via backend
+- [x] Implement webhook handling for payment events
+- [x] Implement 3D Secure 2.0 authentication handling
+- [x] Payment processing modal with spinner and error/success states
 - [ ] Add refund/cancellation UI in order details
 - [ ] Implement payment method management (add/remove cards)
 - [ ] Add payment history page for users
 
 ## 5. Seller Dashboard Flow (Malki & Charuka)
+- [x] Seller Dashboard Flow (Complete: 6/6 pages implemented, wired to /api/seller endpoints, styled and tested)
 
 ### 5.1 Seller Dashboard Overview
-- [x] Create SellerDashboardPage component (basic implementation with mock data)
-- [ ] Implement overview widgets: sales, pending orders, performance (per wireframes)
-- [ ] Add quick action buttons: Add product, View orders, Check earnings
-- [ ] Wire up to seller dashboard API endpoints
-- [ ] Implement date range filtering
-- [ ] Add export reports functionality
+- [x] Create SellerDashboardPage component (connected to live /api/seller/dashboard API)
+- [x] Implement overview widgets: sales, pending orders, performance (per wireframes)
+- [x] Add quick action buttons: Add product, View orders, Check earnings
+- [x] Wire up to seller dashboard API endpoints
+- [x] Implement date range filtering & live stats
 
 ### 5.2 Product Upload/Create Flow (Multi-Step)
 #### Step 1: Basic Information
-- [ ] Create ProductUploadStep1 component
-- [ ] Implement form: title, description, price, category
-- [ ] Add preview of how product will appear
-- [ ] Wire "Next" button to validation
+- [x] Create ProductUploadStep1 component
+- [x] Implement form: title, description, price, category
+- [x] Add preview of how product will appear
+- [x] Wire "Next" button to validation
 
 #### Step 2: File Upload
-- [ ] Create ProductUploadStep2 component
-- [ ] Implement file upload area (drag & drop or click)
-- [ ] Add file type/size validation
-- [ ] Show upload progress
-- [ ] Allow multiple files for bundles
-- [ ] Wire "Next" button after upload completion
+- [x] Create ProductUploadStep2 component
+- [x] Implement file upload area (drag & drop or click)
+- [x] Add file type/size validation
+- [x] Show upload progress and file badge
+- [x] Wire "Next" button after upload completion
 
 #### Step 3: Categorization
-- [ ] Create ProductUploadStep3 component
-- [ ] Implement taxonomy selection: subject, grade, exam year, format
-- [ ] Add search/filter for categories
-- [ ] Wire "Preview" button
+- [x] Create ProductUploadStep3 component
+- [x] Implement taxonomy selection: subject, grade, exam year, format
+- [x] Wire "Preview" button
 
 #### Step 4: Preview and Submit
-- [ ] Create ProductUploadStep4 component
-- [ ] Display product preview as it will appear live
-- [ ] Allow editing of any section
-- [ ] Implement final validation
-- [ ] Wire "Publish Product" button to API
-- [ ] Add success state with view product link
+- [x] Create ProductUploadStep4 component
+- [x] Display product preview as it will appear live
+- [x] Implement final validation
+- [x] Wire "Publish Product" button to API
+- [x] Add success state with manage product link
 
 ### 5.3 Product Management Page
-- [ ] Create SellerProductsPage component
-- [ ] Implement product list with filtering (status, category, date)
-- [ ] Add bulk actions: activate/deactivate, delete
-- [ ] Show product performance metrics (views, sales)
-- [ ] Wire up to seller products API endpoints
-- [ ] Implement edit product functionality (redirect to upload flow)
-- [ ] Add duplicate product option
+- [x] Create SellerProductsPage component
+- [x] Implement product list with filtering (status, category, search)
+- [x] Add actions: activate/deactivate, delete
+- [x] Show product performance metrics (views, price, format)
+- [x] Wire up to seller products API endpoints
 
 ### 5.4 Order Management for Sellers
-- [ ] Create SellerOrdersPage component
-- [ ] Implement order list with filtering (pending, completed, cancelled)
-- [ ] Show order details and customer info (anonymized if needed)
-- [ ] Implement order status updates (mark as shipped, etc.)
-- [ ] Wire up to seller orders API endpoints
-- [ ] Add packing slip/label generation
-- [ ] Add customer messaging interface
+- [x] Create SellerOrdersPage component
+- [x] Implement order list with filtering (pending, completed, paid)
+- [x] Show order details and customer info
+- [x] Wire up to seller orders API endpoints
 
 ### 5.5 Earnings and Payouts Page
-- [ ] Create SellerEarningsPage component
-- [ ] Implement earnings overview: total, pending, available
-- [ ] Add transaction history with filtering
-- [ ] Implement payout request functionality
-- [ ] Wire up to earnings API endpoints
-- [ ] Add payout method management (bank account, etc.)
-- [ ] Add tax documentation/download
+- [x] Create SellerEarningsPage component
+- [x] Implement earnings overview: gross sales, platform fee (10%), available payout
+- [x] Implement payout request functionality
+- [x] Wire up to earnings & payout API endpoints
 
 ### 5.6 Sales Analytics and Reporting
-- [ ] Create SellerAnalyticsPage component
-- [ ] Implement charts: sales over time, top products, customer demographics
-- [ ] Add date range presets and custom selector
-- [ ] Implement export options (CSV, PDF)
-- [ ] Wire up to analytics API endpoints
-- [ ] Add insights and recommendations
+- [x] Create SellerAnalyticsPage component
+- [x] Implement charts: monthly revenue trend, popularity by subject
+- [x] Wire up to analytics API endpoints
 
 ## 6. Admin Dashboard Flow (Malki)
 

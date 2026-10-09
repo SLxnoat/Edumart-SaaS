@@ -11,6 +11,11 @@ import ResetPasswordPage from './pages/ResetPassword';
 import VerifyEmailPage from './pages/VerifyEmail';
 import ResendVerification from './pages/ResendVerification';
 import SellerDashboard from './pages/SellerDashboard';
+import ProductUploadPage from './pages/ProductUpload';
+import SellerProductsPage from './pages/SellerProducts';
+import SellerOrdersPage from './pages/SellerOrders';
+import SellerEarningsPage from './pages/SellerEarnings';
+import SellerAnalyticsPage from './pages/SellerAnalytics';
 import AdminDashboard from './pages/AdminDashboard';
 import Notifications from './pages/Notifications';
 import Reviews from './pages/Reviews';
@@ -25,6 +30,8 @@ import OrderHistoryPage from './pages/OrderHistory';
 import OrderDetailPage from './pages/OrderDetail';
 import MiniCart from './components/MiniCart';
 import './components/SellerDashboard.css';
+import './components/SellerPages.css';
+import './components/ProductUpload.css';
 import './components/AdminDashboard.css';
 import './components/Notifications.css';
 import './components/Reviews.css';
@@ -184,8 +191,16 @@ export default function App() {
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/wishlist" element={<Wishlist />}/>
 
-        {/* Placeholder routes for other features */}
+        {/* Seller Dashboard & Store Management Routes */}
         <Route path="/seller/dashboard" element={<SellerDashboard />} />
+        <Route path="/seller/upload" element={<ProductUploadPage />} />
+        <Route path="/seller/products/create" element={<ProductUploadPage />} />
+        <Route path="/seller/products" element={<SellerProductsPage />} />
+        <Route path="/seller/orders" element={<SellerOrdersPage />} />
+        <Route path="/seller/earnings" element={<SellerEarningsPage />} />
+        <Route path="/seller/analytics" element={<SellerAnalyticsPage />} />
+
+        {/* Other platform routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/reviews" element={<Reviews />}/>

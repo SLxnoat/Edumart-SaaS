@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCart, validateCoupon, submitCheckout, confirmPayment } from '../api';
+import PaymentForm from '../components/PaymentForm';
+import PaymentModal from '../components/PaymentModal';
 import '../components/Checkout.css';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
@@ -9,7 +11,6 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [step, setStep] = useState(1); // 1: Info/Address, 2: Payment, 3: Review
 
@@ -29,10 +30,16 @@ const CheckoutPage = () => {
     postalCode: '',
     notes: '',
     paymentMethod: 'card',
-    cardNumber: '4242 •••• •••• 4242',
+    cardName: 'Jane Doe',
+    cardNumber: '4242 4242 4242 4242',
     cardExp: '12/28',
     cardCvc: '123',
   });
+
+  // Modal payment states: 'processing' | 'requires_3ds' | 'success' | 'error' | null
+  const [modalState, setModalState] = useState(null);
+  const [pendingOrderId, setPendingOrderId] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => {
     getCart()
@@ -50,6 +57,31 @@ const CheckoutPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePresetSelect = (preset) => {
+    if (preset === 'success') {
+      setFormData((prev) => ({
+        ...prev,
+        cardNumber: '4242 4242 4242 4242',
+        cardExp: '12/28',
+        cardCvc: '123',
+      }));
+    } else if (preset === '3ds') {
+      setFormData((prev) => ({
+        ...prev,
+        cardNumber: '4000 0027 6000 3184',
+        cardExp: '12/28',
+        cardCvc: '123',
+      }));
+    } else if (preset === 'decline') {
+      setFormData((prev) => ({
+        ...prev,
+        cardNumber: '4000 0000 0000 0002',
+        cardExp: '12/28',
+        cardCvc: '123',
+      }));
+    }
   };
 
   const handleApplyCoupon = async (e) => {
@@ -82,13 +114,39 @@ const CheckoutPage = () => {
       }
       setStep(2);
     } else if (step === 2) {
+      if (formData.paymentMethod === 'card') {
+        const cleanCard = formData.cardNumber.replace(/\s/g, '');
+        if (cleanCard.length < 13) {
+          setError('Please provide a valid card number');
+          return;
+        }
+      }
       setStep(3);
     }
   };
 
+  const executePaymentConfirmation = async (orderId, targetOrderNumber) => {
+    try {
+      await confirmPayment({
+        orderId,
+        paymentMethod: formData.paymentMethod,
+      });
+      setModalState('success');
+      setTimeout(() => {
+        setModalState(null);
+        navigate(`/order-confirmation/${targetOrderNumber}`);
+      }, 1200);
+    } catch (err) {
+      setPaymentError(err.message || 'Payment confirmation failed');
+      setModalState('error');
+    }
+  };
+
   const handlePlaceOrder = async () => {
-    setSubmitting(true);
     setError(null);
+    setPaymentError('');
+    setModalState('processing');
+
     try {
       // 1. Create order
       const checkoutRes = await submitCheckout({
@@ -108,19 +166,40 @@ const CheckoutPage = () => {
       });
 
       const order = checkoutRes.order;
+      setPendingOrderId(order);
 
-      // 2. Process payment
-      await confirmPayment({
-        orderId: order.id,
-        paymentMethod: formData.paymentMethod,
-      });
+      // Check card simulation for 3DS or Decline
+      const cleanNum = formData.cardNumber.replace(/\s/g, '');
 
-      // 3. Navigate to Order Confirmation
-      navigate(`/order-confirmation/${order.orderNumber}`);
+      // Simulate network / gateway processing latency
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      if (cleanNum === '4000000000000002') {
+        // Declined card simulation
+        setPaymentError('Your card was declined by the bank (Code: card_declined).');
+        setModalState('error');
+        return;
+      }
+
+      if (cleanNum === '4000002760003184') {
+        // 3D Secure challenge simulation
+        setModalState('requires_3ds');
+        return;
+      }
+
+      // Normal direct payment authorization
+      await executePaymentConfirmation(order.id, order.orderNumber);
     } catch (err) {
-      setError(err.message || 'Failed to complete order');
-    } finally {
-      setSubmitting(false);
+      setPaymentError(err.message || 'Checkout failed');
+      setModalState('error');
+    }
+  };
+
+  const handleComplete3DS = async () => {
+    setModalState('processing');
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (pendingOrderId) {
+      await executePaymentConfirmation(pendingOrderId.id, pendingOrderId.orderNumber);
     }
   };
 
@@ -279,50 +358,11 @@ const CheckoutPage = () => {
           {step === 2 && (
             <form onSubmit={handleNextStep} className="checkout-form-step">
               <h2>Select Payment Method</h2>
-              <div className="payment-options">
-                <label className="payment-radio">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="card"
-                    checked={formData.paymentMethod === 'card'}
-                    onChange={handleChange}
-                  />
-                  <span>Credit / Debit Card (Stripe Supported)</span>
-                </label>
-              </div>
-
-              <div className="card-mock-form">
-                <div className="form-group">
-                  <label>Card Number</label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Expires</label>
-                    <input
-                      type="text"
-                      name="cardExp"
-                      value={formData.cardExp}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>CVC</label>
-                    <input
-                      type="text"
-                      name="cardCvc"
-                      value={formData.cardCvc}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
+              <PaymentForm
+                paymentData={formData}
+                onChange={handleChange}
+                onPresetSelect={handlePresetSelect}
+              />
 
               <div className="step-actions">
                 <button type="button" className="btn btn-outline" onClick={() => setStep(1)}>
@@ -341,7 +381,7 @@ const CheckoutPage = () => {
               <div className="review-box">
                 <p><strong>Deliver to:</strong> {formData.firstName} {formData.lastName} ({formData.email})</p>
                 {hasPhysical && <p><strong>Address:</strong> {formData.addressLine1}, {formData.city}</p>}
-                <p><strong>Payment Method:</strong> {formData.paymentMethod.toUpperCase()}</p>
+                <p><strong>Payment Method:</strong> {formData.paymentMethod === 'card' ? `Card (•••• ${formData.cardNumber.slice(-4)})` : 'PayPal'}</p>
               </div>
 
               <h3>Items Ordered</h3>
@@ -362,9 +402,8 @@ const CheckoutPage = () => {
                   type="button"
                   className="btn btn-primary btn-large"
                   onClick={handlePlaceOrder}
-                  disabled={submitting}
                 >
-                  {submitting ? 'Processing Order...' : `Pay & Place Order (${money(total)})`}
+                  Pay & Place Order ({money(total)})
                 </button>
               </div>
             </div>
@@ -400,6 +439,16 @@ const CheckoutPage = () => {
           </dl>
         </aside>
       </div>
+
+      <PaymentModal
+        isOpen={Boolean(modalState)}
+        status={modalState}
+        amount={total}
+        errorMessage={paymentError}
+        onComplete3DS={handleComplete3DS}
+        onRetry={handlePlaceOrder}
+        onCancel={() => setModalState(null)}
+      />
     </div>
   );
 };

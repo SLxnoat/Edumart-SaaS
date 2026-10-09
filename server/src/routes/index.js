@@ -11,6 +11,7 @@ import adminRoutes from './admin.js';
 import moderationRoutes from './moderation.js';
 import wishlistRoutes from './wishlist.js';
 import chatbotRoutes from './chatbot.js';
+import sellerRoutes from './seller.js';
 
 const router = Router();
 
@@ -35,6 +36,7 @@ router.use('/api/orders', orderRoutes);
 router.use('/api/admin', adminRoutes);
 router.use('/api/wishlist', wishlistRoutes);
 router.use('/api/chatbot', chatbotRoutes);
+router.use('/api/seller', sellerRoutes);
 
 // Root API endpoint
 router.get('/api', (req, res) => {

@@ -66,3 +66,14 @@ export const submitCheckout = (payload) => apiFetch('/api/checkout', { method: '
 export const confirmPayment = (payload) => apiFetch('/api/payment/confirm', { method: 'POST', body: payload });
 export const getOrder = (id) => apiFetch(`/api/orders/${id}`);
 export const getOrderHistory = () => apiFetch('/api/orders/history', { auth: true });
+
+// Seller APIs
+export const getSellerDashboard = () => apiFetch('/api/seller/dashboard', { auth: true });
+export const getSellerProducts = () => apiFetch('/api/seller/products', { auth: true });
+export const createSellerProduct = (payload) => apiFetch('/api/seller/products', { method: 'POST', body: payload, auth: true });
+export const toggleProductStatus = (id) => apiFetch(`/api/seller/products/${id}/toggle-status`, { method: 'PUT', auth: true });
+export const deleteSellerProduct = (id) => apiFetch(`/api/seller/products/${id}`, { method: 'DELETE', auth: true });
+export const getSellerOrders = () => apiFetch('/api/seller/orders', { auth: true });
+export const getSellerEarnings = () => apiFetch('/api/seller/earnings', { auth: true });
+export const requestPayout = (payload) => apiFetch('/api/seller/payout', { method: 'POST', body: payload, auth: true });
+export const getSellerAnalytics = () => apiFetch('/api/seller/analytics', { auth: true });
