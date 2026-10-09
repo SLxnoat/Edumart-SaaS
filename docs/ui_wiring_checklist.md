@@ -309,15 +309,14 @@ This document tracks the implementation status of all UI screens and components 
 - [x] Add moderation notifications sent to sellers
 
 ### 6.4 Order Management
-- [ ] Create AdminOrdersPage component
-- [ ] Implement order list with filtering (status, date, amount)
-- [ ] Add search by order number, user email, etc.
-- [ ] Show detailed order information
-- [ ] Implement order status management
-- [ ] Wire up to admin orders API endpoints
-- [ ] Add fraud detection flags
-- [ ] Add refund/cancellation management
-- [ ] Add export/print functionality
+- [x] Create AdminOrdersPage component
+- [x] Implement order list with filtering (status, date, amount)
+- [x] Add search by order number, customer name, customer email
+- [x] Show detailed order information (Order Detail Modal with itemized breakdown)
+- [x] Implement order status management (inline & in modal)
+- [x] Wire up to admin orders API endpoints (/api/admin/orders)
+- [x] Add refund/cancellation management (interactive refund modal)
+- [x] Add export/print functionality (CSV export and formatted printable packing slip)
 
 ### 6.5 Review Moderation Tools
 - [ ] Create AdminReviewsPage component

@@ -102,3 +102,15 @@ export const getModerationQueue = (params = {}) => {
 export const approveModerationProduct = (id) => apiFetch(`/api/admin/moderation/${id}/approve`, { method: 'PUT', auth: true });
 export const rejectModerationProduct = (id, reason) => apiFetch(`/api/admin/moderation/${id}/reject`, { method: 'PUT', body: { reason }, auth: true });
 export const bulkModerateProducts = (ids, action, reason) => apiFetch('/api/admin/moderation/bulk', { method: 'POST', body: { ids, action, reason }, auth: true });
+
+// Admin Order Management APIs
+export const getAdminOrders = (params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, val]) => val !== undefined && val !== null && val !== '')
+  ).toString();
+  return apiFetch(`/api/admin/orders${query ? `?${query}` : ''}`, { auth: true });
+};
+export const getAdminOrderDetail = (id) => apiFetch(`/api/admin/orders/${id}`, { auth: true });
+export const updateAdminOrderStatus = (id, status, notes) => apiFetch(`/api/admin/orders/${id}/status`, { method: 'PUT', body: { status, notes }, auth: true });
+export const refundAdminOrder = (id, amount, reason) => apiFetch(`/api/admin/orders/${id}/refund`, { method: 'POST', body: { amount, reason }, auth: true });
+export const exportAdminOrders = (params = {}) => apiFetch('/api/admin/orders/export', { method: 'POST', body: params, auth: true });

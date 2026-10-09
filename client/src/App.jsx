@@ -19,6 +19,7 @@ import SellerAnalyticsPage from './pages/SellerAnalytics';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsersPage from './pages/AdminUsers';
 import AdminModerationQueue from './pages/AdminModeration';
+import AdminOrdersPage from './pages/AdminOrders';
 import Notifications from './pages/Notifications';
 import Reviews from './pages/Reviews';
 import Category from './pages/Category';
@@ -207,6 +208,7 @@ export default function App() {
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/moderation" element={<AdminModerationQueue />} />
         <Route path="/admin/products/pending" element={<AdminModerationQueue />} />
+        <Route path="/admin/orders" element={<AdminOrdersPage />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/reviews" element={<Reviews />}/>
         <Route path="/resend-verification" element={<ResendVerification />}/>

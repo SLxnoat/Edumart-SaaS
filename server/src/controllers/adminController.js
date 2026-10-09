@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 import sequelize from '../config/db.js';
 
-const { User, Order, Material, Category, Notification } = sequelize.models;
+const { User, Order, OrderItem, Material, Category, Notification } = sequelize.models;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -565,6 +565,319 @@ export const bulkModerateProducts = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/orders
+ */
+export const getAdminOrders = async (req, res) => {
+  try {
+    const { status, paymentStatus, search, sort = 'newest', page = 1, limit = 15 } = req.query;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const limitNum = parseInt(limit, 10);
+
+    const whereClause = {};
+    if (status && status !== 'all') {
+      whereClause.status = status;
+    }
+    if (paymentStatus && paymentStatus !== 'all') {
+      whereClause.paymentStatus = paymentStatus;
+    }
+
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      whereClause[Op.or] = [
+        { orderNumber: { [Op.like]: q } },
+        { '$user.first_name$': { [Op.like]: q } },
+        { '$user.last_name$': { [Op.like]: q } },
+        { '$user.email$': { [Op.like]: q } },
+      ];
+    }
+
+    let orderClause = [['createdAt', 'DESC']];
+    if (sort === 'oldest') orderClause = [['createdAt', 'ASC']];
+    else if (sort === 'amount_high') orderClause = [['totalAmount', 'DESC']];
+    else if (sort === 'amount_low') orderClause = [['totalAmount', 'ASC']];
+
+    const { count, rows: orders } = await Order.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false,
+        },
+        {
+          model: OrderItem,
+          as: 'items',
+          include: [
+            {
+              model: Material,
+              as: 'material',
+              attributes: ['id', 'title', 'price', 'format'],
+            },
+          ],
+        },
+      ],
+      offset,
+      limit: limitNum,
+      order: orderClause,
+    });
+
+    res.json({
+      success: true,
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: parseInt(page, 10),
+      orders: orders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        subtotal: Number(o.subtotal || 0),
+        taxAmount: Number(o.taxAmount || 0),
+        shippingCost: Number(o.shippingCost || 0),
+        discountAmount: Number(o.discountAmount || 0),
+        totalAmount: Number(o.totalAmount || 0),
+        currency: o.currency,
+        shippingAddress: o.shippingAddress,
+        billingAddress: o.billingAddress,
+        notes: o.notes,
+        createdAt: o.createdAt,
+        completedAt: o.completedAt,
+        customer: o.user ? {
+          id: o.user.id,
+          name: `${o.user.firstName} ${o.user.lastName}`,
+          email: o.user.email,
+        } : null,
+        itemsCount: o.items?.length || 0,
+        items: o.items?.map((it) => ({
+          id: it.id,
+          quantity: it.quantity,
+          unitPrice: Number(it.unitPrice || 0),
+          totalPrice: Number(it.totalPrice || 0),
+          title: it.material?.title || 'Educational Material',
+          format: it.material?.format || 'digital',
+        })) || [],
+      })),
+    });
+  } catch (error) {
+    console.error('Get admin orders error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+  }
+};
+
+/**
+ * GET /api/admin/orders/:id
+ */
+export const getAdminOrderDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+        {
+          model: OrderItem,
+          as: 'items',
+          include: [
+            {
+              model: Material,
+              as: 'material',
+              attributes: ['id', 'title', 'price', 'format'],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        subtotal: Number(order.subtotal || 0),
+        taxAmount: Number(order.taxAmount || 0),
+        shippingCost: Number(order.shippingCost || 0),
+        discountAmount: Number(order.discountAmount || 0),
+        totalAmount: Number(order.totalAmount || 0),
+        currency: order.currency,
+        shippingAddress: order.shippingAddress,
+        billingAddress: order.billingAddress,
+        notes: order.notes,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt,
+        customer: order.user ? {
+          id: order.user.id,
+          name: `${order.user.firstName} ${order.user.lastName}`,
+          email: order.user.email,
+        } : null,
+        items: order.items?.map((it) => ({
+          id: it.id,
+          quantity: it.quantity,
+          unitPrice: Number(it.unitPrice || 0),
+          totalPrice: Number(it.totalPrice || 0),
+          title: it.material?.title || 'Educational Material',
+          format: it.material?.format || 'digital',
+        })) || [],
+      },
+    });
+  } catch (error) {
+    console.error('Get admin order detail error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch order details' });
+  }
+};
+
+/**
+ * PUT /api/admin/orders/:id/status
+ */
+export const updateAdminOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    const validStatuses = ['pending', 'processing', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    }
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    order.status = status;
+    if (notes) order.notes = notes;
+    if (status === 'delivered') order.completedAt = new Date();
+    await order.save();
+
+    // Send notification to customer
+    try {
+      if (Notification && order.userId) {
+        await Notification.create({
+          userId: order.userId,
+          type: 'orderStatus',
+          message: `Your order #${order.orderNumber} status has been updated to ${status}.`,
+          relatedId: order.id,
+          relatedType: 'order',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Notification create warning:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Order #${order.orderNumber} status updated to ${status}`,
+      status: order.status,
+    });
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update order status' });
+  }
+};
+
+/**
+ * POST /api/admin/orders/:id/refund
+ */
+export const processOrderRefund = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, reason = 'Refund requested by administrator' } = req.body;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    order.paymentStatus = 'refunded';
+    order.status = 'refunded';
+    order.notes = `${order.notes ? `${order.notes} | ` : ''}Refunded $${amount || order.totalAmount}: ${reason}`;
+    await order.save();
+
+    // Send notification to customer
+    try {
+      if (Notification && order.userId) {
+        await Notification.create({
+          userId: order.userId,
+          type: 'orderStatus',
+          message: `A refund for order #${order.orderNumber} has been processed: ${reason}`,
+          relatedId: order.id,
+          relatedType: 'order',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Notification create warning:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Order #${order.orderNumber} refunded successfully`,
+      order: {
+        id: order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+      },
+    });
+  } catch (error) {
+    console.error('Process refund error:', error);
+    res.status(500).json({ success: false, message: 'Failed to process refund' });
+  }
+};
+
+/**
+ * POST /api/admin/orders/export
+ */
+export const exportAdminOrders = async (req, res) => {
+  try {
+    const { status, paymentStatus } = req.body || {};
+    const whereClause = {};
+    if (status && status !== 'all') whereClause.status = status;
+    if (paymentStatus && paymentStatus !== 'all') whereClause.paymentStatus = paymentStatus;
+
+    const orders = await Order.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'email'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 500,
+    });
+
+    const exportRows = orders.map((o) => ({
+      orderNumber: o.orderNumber,
+      customerName: o.user ? `${o.user.firstName} ${o.user.lastName}` : 'Guest',
+      customerEmail: o.user?.email || 'N/A',
+      totalAmount: Number(o.totalAmount || 0),
+      currency: o.currency,
+      status: o.status,
+      paymentStatus: o.paymentStatus,
+      date: o.createdAt,
+    }));
+
+    res.json({
+      success: true,
+      count: exportRows.length,
+      rows: exportRows,
+    });
+  } catch (error) {
+    console.error('Export orders error:', error);
+    res.status(500).json({ success: false, message: 'Failed to export orders' });
+  }
+};
+
 export default {
   getDashboardStats,
   getAllUsers,
@@ -577,4 +890,9 @@ export default {
   approveProduct,
   rejectProduct,
   bulkModerateProducts,
+  getAdminOrders,
+  getAdminOrderDetail,
+  updateAdminOrderStatus,
+  processOrderRefund,
+  exportAdminOrders,
 };

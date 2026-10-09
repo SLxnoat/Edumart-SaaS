@@ -11,6 +11,11 @@ import {
   approveProduct,
   rejectProduct,
   bulkModerateProducts,
+  getAdminOrders,
+  getAdminOrderDetail,
+  updateAdminOrderStatus,
+  processOrderRefund,
+  exportAdminOrders,
 } from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { admin } from '../middleware/admin.js';
@@ -37,5 +42,12 @@ router.get('/moderation', getModerationQueue);
 router.put('/moderation/:id/approve', approveProduct);
 router.put('/moderation/:id/reject', rejectProduct);
 router.post('/moderation/bulk', bulkModerateProducts);
+
+// Order Management Routes
+router.get('/orders', getAdminOrders);
+router.get('/orders/:id', getAdminOrderDetail);
+router.put('/orders/:id/status', updateAdminOrderStatus);
+router.post('/orders/:id/refund', processOrderRefund);
+router.post('/orders/export', exportAdminOrders);
 
 export default router;
