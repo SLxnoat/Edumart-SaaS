@@ -7,9 +7,13 @@ import {
   saveSearch,
   removeSavedSearch,
 } from '../controllers/searchController.js';
+import { listProducts } from '../controllers/catalogController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
+
+// Product search with filters: GET /api/search?q=&subject=&grade=&examYear=&format=&minPrice=&maxPrice=&sort=
+router.get('/', listProducts);
 
 // Search history routes
 router.get('/history', authenticate, getSearchHistory);

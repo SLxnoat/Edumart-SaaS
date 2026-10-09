@@ -1,118 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import { apiFetch } from '../api';
 import '../components/Category.css';
 
 const CategoryPage = () => {
-  const { categoryId, categoryName } = useParams();
+  const { categoryId } = useParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('featured'); // featured, price-low, price-high, rating, newest
-  const navigate = useNavigate();
+  const [category, setCategory] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const categoryName = category?.name || '';
 
   useEffect(() => {
-    const fetchCategoryProducts = async () => {
+    let cancelled = false;
+    const load = async () => {
       try {
         setLoading(true);
-        // In a real implementation, this would call an API like:
-        // const response = await fetch(`/api/categories/${categoryId}/products?sort=${sortBy}`, { credentials: 'include' });
-
-        // For now, we'll simulate with placeholder data that matches expected structure
-        // This data would normally come from the backend
-        const mockProducts = [
-          {
-            id: 'PROD-001',
-            name: 'Algebra 1 Past Papers Bundle',
-            price: 29.99,
-            originalPrice: 39.99,
-            discount: 25,
-            rating: 4.8,
-            reviewCount: 124,
-            thumbnail: '/placeholder-product-1.jpg',
-            isNew: false,
-            isFeatured: true
-          },
-          {
-            id: 'PROD-002',
-            name: 'Biology Revision Notes',
-            price: 19.99,
-            rating: 4.5,
-            reviewCount: 89,
-            thumbnail: '/placeholder-product-2.jpg',
-            isNew: true,
-            isFeatured: false
-          },
-          {
-            id: 'PROD-003',
-            name: 'Chemistry Exam Practice',
-            price: 24.99,
-            originalPrice: 29.99,
-            discount: 17,
-            rating: 4.2,
-            reviewCount: 67,
-            thumbnail: '/placeholder-product-3.jpg',
-            isNew: false,
-            isFeatured: false
-          },
-          {
-            id: 'PROD-004',
-            name: 'Physics Formulas Sheet',
-            price: 9.99,
-            rating: 4.6,
-            reviewCount: 156,
-            thumbnail: '/placeholder-product-4.jpg',
-            isNew: false,
-            isFeatured: true
-          },
-          {
-            id: 'PROD-005',
-            name: 'English Literature Study Guide',
-            price: 14.99,
-            rating: 4.3,
-            reviewCount: 78,
-            thumbnail: '/placeholder-product-5.jpg',
-            isNew: true,
-            isFeatured: false
-          },
-          {
-            id: 'PROD-006',
-            name: 'Math Problem Solving Workbook',
-            price: 22.99,
-            rating: 4.7,
-            reviewCount: 103,
-            thumbnail: '/placeholder-product-6.jpg',
-            isNew: false,
-            isFeatured: false
-          }
-        ];
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Sort products based on sortBy state
-        let sortedProducts = [...mockProducts];
-        if (sortBy === 'price-low') {
-          sortedProducts.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (sortBy === 'price-high') {
-          sortedProducts.sort((a, b) => (b.price || 0) - (a.price || 0));
-        } else if (sortBy === 'rating') {
-          sortedProducts.sort((a, b) => b.rating - a.rating);
-        } else if (sortBy === 'newest') {
-          sortedProducts.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        } // featured/default remains as is (featured items first)
-
-        setProducts(sortedProducts);
-        setLoading(false);
+        setError(null);
+        if (!categoryId) {
+          // /category without an id: browse all categories
+          const data = await apiFetch('/api/categories/browse');
+          if (cancelled) return;
+          setCategories(data.categories);
+          setCategory(null);
+          setProducts([]);
+        } else {
+          const data = await apiFetch(`/api/categories/${encodeURIComponent(categoryId)}/products?sort=${sortBy}`);
+          if (cancelled) return;
+          setCategory(data.category);
+          setProducts(data.products);
+        }
       } catch (err) {
-        setError(err.message || 'Failed to load category products');
-        setLoading(false);
+        if (!cancelled) {
+          setError(err.status === 404 ? 'Category not found' : err.message || 'Failed to load category products');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-
-    if (categoryId) {
-      fetchCategoryProducts();
-    }
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [categoryId, sortBy]);
 
   // If loading, show loading state
@@ -157,6 +89,28 @@ const CategoryPage = () => {
     );
   }
 
+  // Category browsing page (no category selected)
+  if (!categoryId) {
+    return (
+      <div className="page-shell">
+        <div className="category-header">
+          <Link to="/" className="btn btn-link">
+            ← Back to Home
+          </Link>
+          <h1>Browse by Category</h1>
+          <p className="category-subtitle">Pick a subject to explore learning resources</p>
+        </div>
+        <div className="category-list">
+          {categories.map((c) => (
+            <Link key={c.id} to={`/category/${c.id}`} className="category-link">
+              {c.name} ({c.productCount})
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // If no products
   if (products.length === 0) {
     return (
@@ -191,7 +145,7 @@ const CategoryPage = () => {
           ← Back to Home
         </Link>
         <h1>{categoryName}</h1>
-        <p className="category-subtitle">Browse {categoryName.toLowerCase()} learning resources</p>
+        <p className="category-subtitle">{category?.description || `Browse ${categoryName.toLowerCase()} learning resources`}</p>
       </div>
 
       {/* Filters and Sorting */}

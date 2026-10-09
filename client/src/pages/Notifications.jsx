@@ -196,7 +196,7 @@ const Notifications = () => {
             <div className="empty-state-icon">🔕</div>
             <p className="empty-state-title">No notifications</p>
             <p className="empty-state-description">
-              You don't have any notifications yet. You'll see updates here when you have new messages, order updates, or promotional offers.
+              You don&apos;t have any notifications yet. You&apos;ll see updates here when you have new messages, order updates, or promotional offers.
             </p>
             <Link to="/" className="btn btn-outline">
               Go Shopping

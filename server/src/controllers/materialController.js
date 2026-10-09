@@ -1,7 +1,7 @@
-import Material from '../models/Material.js';
-import Category from '../models/Category.js';
-import User from '../models/User.js';
+import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
+
+const { Material, Category, User } = sequelize.models;
 
 /**
  * Get all materials with filtering, search, and pagination

@@ -1,5 +1,6 @@
-import Category from '../models/Category.js';
-import Material from '../models/Material.js';
+import sequelize from '../config/db.js';
+
+const { Category, Material } = sequelize.models;
 
 /**
  * Get all categories (with optional filtering)

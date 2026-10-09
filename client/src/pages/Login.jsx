@@ -1,3 +1,4 @@
+import { setToken, mergeGuestCart } from '../api';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -43,8 +44,9 @@ const LoginPage = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store token in localStorage or cookie (in real app, use httpOnly cookie)
-      // For now, we'll assume the backend handles auth via cookies with credentials: 'include'
+      // Keep the JWT so authenticated calls (wishlist, ...) can send it as a Bearer token
+      setToken(data.token);
+      mergeGuestCart().catch(() => {}); // bring over anything added to the cart as a guest
       setSuccess('Login successful! Redirecting...');
 
       // Redirect to home after successful login
@@ -170,7 +172,7 @@ const LoginPage = () => {
 
           <div className="auth-links">
             <p>
-              Don't have an account? <Link to="/register">Sign up</Link>
+              Don&apos;t have an account? <Link to="/register">Sign up</Link>
             </p>
             <p>
               <Link to="/forgot-password">Forgot password?</Link>

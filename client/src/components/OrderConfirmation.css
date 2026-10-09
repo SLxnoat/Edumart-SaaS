@@ -1,0 +1,129 @@
+.confirmation-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.confirmation-banner {
+  text-align: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.check-icon {
+  width: 50px;
+  height: 50px;
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 1.8rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.order-num-tag {
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+}
+
+.order-sub {
+  color: #4b5563;
+  max-width: 600px;
+  margin: 0.5rem auto 0;
+}
+
+.confirmation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.order-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.order-item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-item-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.order-item-title {
+  font-weight: 600;
+}
+
+.order-item-sub {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.order-breakdown {
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-breakdown div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.discount-txt {
+  color: #16a34a;
+}
+
+.order-total-row {
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.5rem;
+}
+
+.status-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.shipping-details {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.shipping-details p {
+  margin: 0.2rem 0;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .confirmation-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,403 +1,191 @@
-import Cart from '../models/Cart.js';
-import CartItem from '../models/CartItem.js';
-import Material from '../models/Material.js';
-import { Op } from 'sequelize';
+import sequelize from '../config/db.js';
+import { toProduct } from './catalogController.js';
 
-/**
- * Get or create a cart for the current context (user or session)
- * @param {Object} req - Express request object
- * @returns {Promise<Cart>} The cart instance
- */
+const { Cart, CartItem, Material, Category } = sequelize.models;
+
+const TAX_RATE = 0.1;
+const MAX_QTY = 99;
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/** Cart for the logged-in user, or for the guest session sent in the x-session-id header. */
 const getOrCreateCart = async (req) => {
-  let cart;
-  const userId = req.user ? req.user.id : null;
-  const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-
+  const userId = req.user?.id;
+  const sessionId = req.headers['x-session-id'] || req.body?.sessionId;
   if (userId) {
-    // Try to get the user's cart
-    cart = await Cart.findOne({ where: { userId } });
-    if (!cart) {
-      cart = await Cart.create({ userId });
+    const [cart] = await Cart.findOrCreate({ where: { userId }, defaults: { userId } });
+    return cart;
+  }
+  if (sessionId) {
+    const [cart] = await Cart.findOrCreate({ where: { sessionId }, defaults: { sessionId } });
+    return cart;
+  }
+  throw new HttpError(400, 'Log in or provide an x-session-id header');
+};
+
+// Digital items are bought once; physical items are limited by stock.
+const maxQuantity = (m) => (m.format === 'digital' ? 1 : Math.min(MAX_QTY, m.stockQuantity || MAX_QTY));
+
+const serializeCart = async (cart) => {
+  const items = await CartItem.findAll({
+    where: { cartId: cart.id },
+    include: [{
+      model: Material,
+      as: 'material',
+      include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],
+    }],
+    order: [['createdAt', 'ASC']],
+  });
+  const lines = items.filter((i) => i.material).map((i) => {
+    const unitPrice = Number(i.material.price);
+    return {
+      id: i.id,
+      product: toProduct(i.material),
+      quantity: i.quantity,
+      maxQuantity: maxQuantity(i.material),
+      unitPrice,
+      lineTotal: Math.round(unitPrice * i.quantity * 100) / 100,
+      available: i.material.isActive && i.material.isApproved,
+    };
+  });
+  const subtotal = Math.round(lines.reduce((sum, l) => sum + l.lineTotal, 0) * 100) / 100;
+  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+  return {
+    id: cart.id,
+    items: lines,
+    summary: {
+      itemCount: lines.reduce((sum, l) => sum + l.quantity, 0),
+      subtotal,
+      taxRate: TAX_RATE,
+      taxAmount: tax,
+      total: Math.round((subtotal + tax) * 100) / 100,
+    },
+  };
+};
+
+const handle = (name, fn) => async (req, res) => {
+  try {
+    await fn(req, res);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      return res.status(error.status).json({ success: false, message: error.message });
     }
-  } else if (sessionId) {
-    // Try to get the cart by sessionId
-    cart = await Cart.findOne({ where: { sessionId } });
-    if (!cart) {
-      cart = await Cart.create({ sessionId });
-    }
+    console.error(`${name} error:`, error);
+    res.status(500).json({ success: false, message: `Failed to ${name}` });
+  }
+};
+
+const respond = async (res, cart, message) =>
+  res.json({ success: true, message, cart: await serializeCart(cart) });
+
+const parseQuantity = (value, fallback) => {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) throw new HttpError(400, 'Quantity must be a whole number of at least 1');
+  return n;
+};
+
+/** GET /api/cart */
+export const getCart = handle('get cart', async (req, res) => {
+  const cart = await getOrCreateCart(req);
+  await respond(res, cart);
+});
+
+/** POST /api/cart/add  { productId, quantity? } (materialId accepted as an alias) */
+export const addToCart = handle('add item to cart', async (req, res) => {
+  const productId = req.body.productId || req.body.materialId;
+  if (!productId) throw new HttpError(400, 'productId is required');
+  const qty = parseQuantity(req.body.quantity, 1);
+
+  const material = await Material.findByPk(productId);
+  if (!material || !material.isActive || !material.isApproved) {
+    throw new HttpError(404, 'Product not available');
+  }
+  if (material.format !== 'digital' && material.stockQuantity < 1) {
+    throw new HttpError(400, 'Product is out of stock');
+  }
+
+  const cart = await getOrCreateCart(req);
+  const existing = await CartItem.findOne({ where: { cartId: cart.id, materialId: productId } });
+  const limit = maxQuantity(material);
+  if (existing) {
+    existing.quantity = Math.min(existing.quantity + qty, limit);
+    await existing.save();
   } else {
-    throw new Error('Either user must be authenticated or sessionId must be provided');
-  }
-
-  return cart;
-};
-
-/**
- * Get the cart for the current context
- */
-export const getCart = async (req, res) => {
-  try {
-    const cart = await getOrCreateCart(req);
-    // Include cart items with material details
-    const cartWithItems = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree', 'thumbnailUrl'],
-            },
-          ],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      cart: cartWithItems,
-    });
-  } catch (error) {
-    console.error('Get cart error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get cart',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    await CartItem.create({
+      cartId: cart.id,
+      materialId: productId,
+      quantity: Math.min(qty, limit),
+      priceAtAddition: material.price,
     });
   }
-};
+  await respond(res, cart, 'Item added to cart');
+});
 
-/**
- * Add a material to the cart
- */
-export const addToCart = async (req, res) => {
-  try {
-    const { materialId, quantity } = req.body;
-    if (!materialId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Material ID is required',
-      });
+/** PUT /api/cart/item/:cartItemId  { quantity } */
+export const updateCartItem = handle('update cart item', async (req, res) => {
+  const qty = parseQuantity(req.body.quantity, undefined);
+  if (qty === undefined) throw new HttpError(400, 'quantity is required');
+  const cart = await getOrCreateCart(req);
+  const item = await CartItem.findOne({
+    where: { id: req.params.cartItemId, cartId: cart.id },
+    include: [{ model: Material, as: 'material' }],
+  });
+  if (!item) throw new HttpError(404, 'Cart item not found');
+  item.quantity = Math.min(qty, item.material ? maxQuantity(item.material) : MAX_QTY);
+  await item.save();
+  await respond(res, cart, 'Cart item updated');
+});
+
+/** DELETE /api/cart/item/:cartItemId */
+export const removeFromCart = handle('remove item from cart', async (req, res) => {
+  const cart = await getOrCreateCart(req);
+  const deleted = await CartItem.destroy({ where: { id: req.params.cartItemId, cartId: cart.id } });
+  if (!deleted) throw new HttpError(404, 'Cart item not found');
+  await respond(res, cart, 'Item removed from cart');
+});
+
+/** DELETE /api/cart/clear */
+export const clearCart = handle('clear cart', async (req, res) => {
+  const cart = await getOrCreateCart(req);
+  await CartItem.destroy({ where: { cartId: cart.id } });
+  await respond(res, cart, 'Cart cleared');
+});
+
+/** GET /api/cart/summary */
+export const getCartSummary = handle('get cart summary', async (req, res) => {
+  const cart = await getOrCreateCart(req);
+  const { summary } = await serializeCart(cart);
+  res.json({ success: true, cartSummary: summary });
+});
+
+/** POST /api/cart/merge — move a guest cart (x-session-id) into the logged-in user's cart */
+export const mergeGuestCart = handle('merge cart', async (req, res) => {
+  const sessionId = req.headers['x-session-id'];
+  if (!req.user?.id) throw new HttpError(401, 'Authentication required');
+  const userCart = await getOrCreateCart({ user: req.user, headers: {}, body: {} });
+  const guest = sessionId ? await Cart.findOne({ where: { sessionId } }) : null;
+  if (guest) {
+    const guestItems = await CartItem.findAll({ where: { cartId: guest.id }, include: [{ model: Material, as: 'material' }] });
+    for (const gi of guestItems) {
+      if (!gi.material) continue;
+      const existing = await CartItem.findOne({ where: { cartId: userCart.id, materialId: gi.materialId } });
+      const limit = maxQuantity(gi.material);
+      if (existing) {
+        existing.quantity = Math.min(existing.quantity + gi.quantity, limit);
+        await existing.save();
+      } else {
+        await CartItem.create({ cartId: userCart.id, materialId: gi.materialId, quantity: Math.min(gi.quantity, limit), priceAtAddition: gi.material.price });
+      }
     }
-    const qty = quantity || 1;
-
-    // Check if material exists and is published
-    const material = await Material.findByPk(materialId);
-    if (!material) {
-      return res.status(404).json({
-        success: false,
-        message: 'Material not found',
-      });
-    }
-    if (!material.isPublished) {
-      return res.status(400).json({
-        success: false,
-        message: 'Material is not available for purchase',
-      });
-    }
-
-    const cart = await getOrCreateCart(req);
-
-    // Check if the item already exists in the cart
-    let cartItem = await CartItem.findOne({
-      where: {
-        cartId: cart.id,
-        materialId,
-      },
-    });
-
-    if (cartItem) {
-      // Update quantity
-      cartItem.quantity += qty;
-      await cartItem.save();
-    } else {
-      // Create new cart item
-      cartItem = await CartItem.create({
-        cartId: cart.id,
-        materialId,
-        quantity: qty,
-        priceAtAddition: material.isFree ? 0 : material.price,
-      });
-    }
-
-    // Return the updated cart
-    const updatedCart = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree', 'thumbnailUrl'],
-            },
-          ],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Item added to cart',
-      cart: updatedCart,
-    });
-  } catch (error) {
-    console.error('Add to cart error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add item to cart',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    await guest.destroy();
   }
-};
+  await respond(res, userCart, 'Cart merged');
+});
 
-/**
- * Update a cart item's quantity
- */
-export const updateCartItem = async (req, res) => {
-  try {
-    const { cartItemId, quantity } = req.body;
-    if (!cartItemId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cart item ID is required',
-      });
-    }
-    const qty = quantity;
-    if (qty < 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Quantity must be at least 1',
-      });
-    }
-
-    const cart = await getOrCreateCart(req);
-
-    const cartItem = await CartItem.findOne({
-      where: {
-        id: cartItemId,
-        cartId: cart.id,
-      },
-      include: [
-        {
-          model: Material,
-          as: 'material',
-        },
-      ],
-    });
-
-    if (!cartItem) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cart item not found',
-      });
-    }
-
-    cartItem.quantity = qty;
-    await cartItem.save();
-
-    // Return the updated cart
-    const updatedCart = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree', 'thumbnailUrl'],
-            },
-          ],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Cart item updated',
-      cart: updatedCart,
-    });
-  } catch (error) {
-    console.error('Update cart item error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update cart item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Remove a cart item
- */
-export const removeFromCart = async (req, res) => {
-  try {
-    const { cartItemId } = req.params;
-    if (!cartItemId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cart item ID is required',
-      });
-    }
-
-    const cart = await getOrCreateCart(req);
-
-    const deleted = await CartItem.destroy({
-      where: {
-        id: cartItemId,
-        cartId: cart.id,
-      },
-    });
-
-    if (deleted === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cart item not found',
-      });
-    }
-
-    // Return the updated cart
-    const updatedCart = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree', 'thumbnailUrl'],
-            },
-          ],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Item removed from cart',
-      cart: updatedCart,
-    });
-  } catch (error) {
-    console.error('Remove from cart error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to remove item from cart',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Clear the cart
- */
-export const clearCart = async (req, res) => {
-  try {
-    const cart = await getOrCreateCart(req);
-
-    await CartItem.destroy({
-      where: {
-        cartId: cart.id,
-      },
-    });
-
-    // Return the updated cart (empty)
-    const updatedCart = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree', 'thumbnailUrl'],
-            },
-          ],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Cart cleared',
-      cart: updatedCart,
-    });
-  } catch (error) {
-    console.error('Clear cart error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clear cart',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Get cart summary (subtotal, taxes, totals)
- */
-export const getCartSummary = async (req, res) => {
-  try {
-    const cart = await getOrCreateCart(req);
-
-    // Get cart items with material details for price calculation
-    const cartWithItems = await Cart.findByPk(cart.id, {
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Material,
-              as: 'material',
-              attributes: ['id', 'price', 'isFree'],
-            },
-          ],
-        },
-      ],
-    });
-
-    let subtotal = 0;
-    let taxRate = 0.1; // 10% tax (example)
-    let taxAmount = 0;
-    let total = 0;
-
-    cartWithItems.items.forEach(item => {
-      const itemTotal = item.priceAtAddition * item.quantity;
-      subtotal += itemTotal;
-    });
-
-    taxAmount = subtotal * taxRate;
-    total = subtotal + taxAmount;
-
-    res.status(200).json({
-      success: true,
-      cartSummary: {
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        taxAmount: parseFloat(taxAmount.toFixed(2)),
-        total: parseFloat(total.toFixed(2)),
-        itemCount: cartWithItems.items.reduce((sum, item) => sum + item.quantity, 0),
-      },
-    });
-  } catch (error) {
-    console.error('Get cart summary error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get cart summary',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-export default {
-  getCart,
-  addToCart,
-  updateCartItem,
-  removeFromCart,
-  clearCart,
-  getCartSummary,
-};
+export default { getCart, addToCart, updateCartItem, removeFromCart, clearCart, getCartSummary, mergeGuestCart };

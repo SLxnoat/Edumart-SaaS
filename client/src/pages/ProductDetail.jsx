@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { apiFetch, addToWishlist, addToCart } from '../api';
+import RelatedProducts from '../components/RelatedProducts';
 import '../components/ProductDetail.css';
 
 const ProductDetailPage = () => {
@@ -11,103 +13,53 @@ const ProductDetailPage = () => {
   const [activeTab, setActiveTab] = useState('description'); // description, reviews, details
   const [selectedRating, setSelectedRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [activeImage, setActiveImage] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        // In a real implementation, this would call an API like:
-        // const response = await fetch(`/api/products/${productId}`, { credentials: 'include' });
-
-        // For now, we'll simulate with placeholder data that matches expected structure
-        // This data would normally come from the backend
-        const mockProduct = {
-          id: 'PROD-001',
-          name: 'Algebra 1 Past Papers Bundle',
-          price: 29.99,
-          originalPrice: 39.99,
-          discount: 25,
-          rating: 4.8,
-          reviewCount: 124,
-          description: 'This comprehensive bundle includes past papers from the last 5 years, detailed solutions, and exam tips. Perfect for students preparing for their Algebra 1 exams.',
-          shortDescription: 'Complete Algebra 1 past papers with solutions',
-          thumbnail: '/placeholder-product-1.jpg',
-          images: [
-            '/placeholder-product-1.jpg',
-            '/placeholder-product-1b.jpg',
-            '/placeholder-product-1c.jpg'
-          ],
-          isNew: false,
-          isFeatured: true,
-          category: 'Mathematics',
-          subcategory: 'Algebra',
-          gradeLevel: 'Grade 9',
-          examYear: '2023',
-          format: 'PDF',
-          pages: 120,
-          fileSize: '25 MB',
-          publisher: 'EduMart Publishing',
-          publicationDate: '2023-09-01',
-          language: 'English',
-          isDigital: true,
-          isPhysical: false,
-          stock: 99,
-          sku: 'ALG1-PP-2023',
-          vendor: 'EduMart',
-          // Reviews data
-          reviews: [
-            {
-              id: 'REV-001',
-              userName: 'Jane Smith',
-              rating: 5,
-              title: 'Excellent resource!',
-              comment: 'This bundle helped me ace my exams. The explanations are clear and the practice questions are spot-on.',
-              images: [],
-              createdAt: '2026-10-01T10:30:00Z',
-              helpfulCount: 12,
-              isHelpful: false
-            },
-            {
-              id: 'REV-002',
-              userName: 'Michael Chen',
-              rating: 4,
-              title: 'Good notes, missing some topics',
-              comment: 'The notes are well-organized and easy to follow, but I wish they covered more advanced topics like genetics.',
-              images: ['/placeholder-review-1.jpg'],
-              createdAt: '2026-09-25T14:15:00Z',
-              helpfulCount: 8,
-              isHelpful: true
-            }
-          ]
-        };
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setProduct(mockProduct);
-        setLoading(false);
+        setError(null);
+        setActiveImage(0);
+        const data = await apiFetch(`/api/materials/${encodeURIComponent(productId)}`);
+        if (!cancelled) setProduct(data.product);
       } catch (err) {
-        setError(err.message || 'Failed to load product details');
-        setLoading(false);
+        if (!cancelled) {
+          if (err.status === 404) setProduct(null);
+          else setError(err.message || 'Failed to load product details');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (productId) {
       fetchProductDetails();
     }
+    return () => {
+      cancelled = true;
+    };
   }, [productId]);
 
-  const handleAddToCart = () => {
-    // In a real app, this would add to cart via API
-    alert(`${product.name} has been added to your cart!`);
-    // Optionally navigate to cart
-    // navigate('/cart');
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product.id, quantity);
+      if (window.confirm(`${product.name} was added to your cart. View cart now?`)) navigate('/cart');
+    } catch (err) {
+      alert(err.message || 'Could not add this item to the cart');
+    }
   };
 
-  const handleSaveForLater = () => {
-    // In a real app, this would add to wishlist via API
-    alert(`${product.name} has been saved for later!`);
+  const handleSaveForLater = async () => {
+    try {
+      await addToWishlist(product.id);
+      alert(`${product.name} has been saved for later!`);
+    } catch (err) {
+      if (err.status === 401) navigate('/login');
+      else alert(err.message || 'Could not save this item');
+    }
   };
 
   const handleIncreaseQuantity = () => {
@@ -187,7 +139,7 @@ const ProductDetailPage = () => {
             <div className="empty-state-icon">📦</div>
             <p className="empty-state-title">Product not found</p>
             <p className="empty-state-description">
-              The product you're looking for doesn't exist or has been removed.
+              The product you&apos;re looking for doesn&apos;t exist or has been removed.
             </p>
             <Link to="/catalog" className="btn btn-outline">
               Browse Products
@@ -222,24 +174,20 @@ const ProductDetailPage = () => {
         <div className="product-gallery">
           <div className="main-image">
             <img
-              src={images[0] || thumbnail || '/placeholder-product.jpg'}
+              src={images?.[activeImage] || '/placeholder-product.jpg'}
               alt={name}
             />
           </div>
 
-          {images.length > 1 && (
+          {images?.length > 1 && (
             <div className="thumbnail-grid">
               {images.map((image, index) => (
                 <img
                   key={index}
                   src={image}
                   alt={`${name} ${index + 1}`}
-                  className={index === 0 ? 'active' : ''}
-                  onClick={() => {
-                    // In a real implementation, this would update the main image
-                    // For now, we'll just console.log
-                    console.log(`Clicked thumbnail ${index}`);
-                  }}
+                  className={index === activeImage ? 'active' : ''}
+                  onClick={() => setActiveImage(index)}
                 />
               ))}
             </div>
@@ -409,6 +357,7 @@ const ProductDetailPage = () => {
 
             {/* Existing Reviews */}
             <div className="reviews-list">
+              {reviews.length === 0 && <p>No reviews yet. Be the first to review this product.</p>}
               {reviews.map(review => (
                 <div key={review.id} className="review-card">
                   <div className="review-header">
@@ -470,10 +419,12 @@ const ProductDetailPage = () => {
                 <span className="detail-label">Category:</span>
                 <span className="detail-value">{category}</span>
               </div>
-              <div className="detail-item">
+              {subcategory && (
+                <div className="detail-item">
                 <span className="detail-label">Subcategory:</span>
                 <span className="detail-value">{subcategory}</span>
               </div>
+              )}
               <div className="detail-item">
                 <span className="detail-label">Grade Level:</span>
                 <span className="detail-value">{gradeLevel}</span>
@@ -486,26 +437,36 @@ const ProductDetailPage = () => {
                 <span className="detail-label">Format:</span>
                 <span className="detail-value">{format}</span>
               </div>
-              <div className="detail-item">
+              {pages && (
+                <div className="detail-item">
                 <span className="detail-label">Pages:</span>
                 <span className="detail-value">{pages}</span>
               </div>
-              <div className="detail-item">
+              )}
+              {fileSize && (
+                <div className="detail-item">
                 <span className="detail-label">File Size:</span>
                 <span className="detail-value">{fileSize}</span>
               </div>
-              <div className="detail-item">
+              )}
+              {publisher && (
+                <div className="detail-item">
                 <span className="detail-label">Publisher:</span>
                 <span className="detail-value">{publisher}</span>
               </div>
-              <div className="detail-item">
+              )}
+              {publicationDate && (
+                <div className="detail-item">
                 <span className="detail-label">Publication Date:</span>
                 <span className="detail-value">{new Date(publicationDate).toLocaleDateString()}</span>
               </div>
-              <div className="detail-item">
+              )}
+              {language && (
+                <div className="detail-item">
                 <span className="detail-label">Language:</span>
                 <span className="detail-value">{language}</span>
               </div>
+              )}
               <div className="detail-item">
                 <span className="detail-label">Digital Download:</span>
                 <span className="detail-value">{isDigital ? 'Yes' : 'No'}</span>
@@ -530,6 +491,8 @@ const ProductDetailPage = () => {
           </div>
         )}
       </div>
+
+      <RelatedProducts productId={productId} />
     </div>
   );
 };

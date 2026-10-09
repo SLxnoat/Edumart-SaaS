@@ -204,3 +204,11 @@
     padding: 1rem;
   }
 }
+.product-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  font-size: 3rem;
+  background: #eef2f7;
+}

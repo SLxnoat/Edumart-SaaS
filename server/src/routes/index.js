@@ -9,6 +9,7 @@ import paymentRoutes from './payment.js';
 import orderRoutes from './orders.js';
 import adminRoutes from './admin.js';
 import moderationRoutes from './moderation.js';
+import wishlistRoutes from './wishlist.js';
 import chatbotRoutes from './chatbot.js';
 
 const router = Router();
@@ -32,6 +33,7 @@ router.use('/api/checkout', checkoutRoutes);
 router.use('/api/payment', paymentRoutes);
 router.use('/api/orders', orderRoutes);
 router.use('/api/admin', adminRoutes);
+router.use('/api/wishlist', wishlistRoutes);
 router.use('/api/chatbot', chatbotRoutes);
 
 // Root API endpoint
@@ -56,6 +58,11 @@ router.get('/api', (req, res) => {
       '/api/materials/category/:categoryId',
       '/api/materials/:id',
       '/api/materials/suggest',
+      '/api/materials/:id/related',
+      '/api/search',
+      '/api/wishlist (protected)',
+      '/api/categories/browse',
+      '/api/categories/:idOrName/products',
       '/api/materials/pending',
       '/api/materials/:id/approve',
       '/api/materials/:id/reject',

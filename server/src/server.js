@@ -9,9 +9,12 @@ const syncDatabase = async () => {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
-    // Sync all models
-    await sequelize.sync({ alter: true }); // Use alter: true for development, false for production
-    console.log('All models were synchronized successfully.');
+    // The schema is owned by sql/database_schema.sql (+ sql/migrations).
+    // Auto-altering tables from Sequelize models is opt-in: set DB_SYNC=true.
+    if (process.env.DB_SYNC === 'true') {
+      await sequelize.sync({ alter: true });
+      console.log('All models were synchronized successfully.');
+    }
   } catch (error) {
     console.error('Unable to connect to the database:', error);
     process.exit(1);

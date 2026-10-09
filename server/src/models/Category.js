@@ -3,8 +3,8 @@ import { Sequelize, DataTypes } from 'sequelize';
 export default (sequelize, DataTypes) => {
   const Category = sequelize.define('Category', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
     },
     name: {
@@ -18,7 +18,7 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
     },
     parentId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       references: {
         model: 'product_categories',
         key: 'id',

@@ -112,7 +112,7 @@ const VerifyEmailPage = () => {
         <div className="verify-content">
           <div className="verify-icon">📧</div>
           <p className="verify-text">
-            We've sent a verification link to your email. Please check your inbox and click the link to verify your account.
+            We&apos;ve sent a verification link to your email. Please check your inbox and click the link to verify your account.
           </p>
           {!loading && !error && !success && (
             <div className="verify-actions">
@@ -128,7 +128,7 @@ const VerifyEmailPage = () => {
 
         <div className="auth-links">
           <p>
-            Didn't receive the email? <Link to="/resend-verification">Resend verification email</Link>
+            Didn&apos;t receive the email? <Link to="/resend-verification">Resend verification email</Link>
           </p>
           <p>
             <Link to="/login">Back to login</Link>

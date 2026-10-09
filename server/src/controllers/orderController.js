@@ -1,18 +1,17 @@
-import Order from '../models/Order.js';
-import OrderItem from '../models/OrderItem.js';
-import Material from '../models/Material.js';
-import { Op } from 'sequelize';
+import sequelize from '../config/db.js';
+
+const { Order, OrderItem, Material, Payment, User } = sequelize.models;
 
 /**
- * Get order history for the authenticated user
- * Supports pagination and filtering by status
+ * GET /api/orders or /api/orders/history
+ * Fetch orders for the authenticated user
  */
 export const getOrderHistory = async (req, res) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 10, status } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const limitNum = parseInt(limit);
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const limitNum = parseInt(limit, 10);
 
     const whereClause = { userId };
     if (status) {
@@ -29,9 +28,13 @@ export const getOrderHistory = async (req, res) => {
             {
               model: Material,
               as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree'],
+              attributes: ['id', 'title', 'price', 'thumbnailUrl', 'format'],
             },
           ],
+        },
+        {
+          model: Payment,
+          as: 'payments',
         },
       ],
       offset,
@@ -43,7 +46,7 @@ export const getOrderHistory = async (req, res) => {
       success: true,
       count,
       totalPages: Math.ceil(count / limitNum),
-      currentPage: parseInt(page),
+      currentPage: parseInt(page, 10),
       orders,
     });
   } catch (error) {
@@ -51,21 +54,26 @@ export const getOrderHistory = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch order history',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 /**
- * Get a specific order by ID (for authenticated user)
+ * GET /api/orders/:id
+ * Retrieve specific order by ID or orderNumber
  */
 export const getOrderById = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { id } = req.params;
+    const userId = req.user?.id; // optional if accessed right after checkout or by user
+
+    const where = id.startsWith('ORD-') ? { orderNumber: id } : { id };
+    if (userId && req.user.role !== 'admin') {
+      where.userId = userId;
+    }
 
     const order = await Order.findOne({
-      where: { id, userId },
+      where,
       include: [
         {
           model: OrderItem,
@@ -74,9 +82,13 @@ export const getOrderById = async (req, res) => {
             {
               model: Material,
               as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree'],
+              attributes: ['id', 'title', 'price', 'thumbnailUrl', 'format'],
             },
           ],
+        },
+        {
+          model: Payment,
+          as: 'payments',
         },
       ],
     });
@@ -84,7 +96,7 @@ export const getOrderById = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found or access denied',
+        message: 'Order not found',
       });
     }
 
@@ -97,17 +109,15 @@ export const getOrderById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch order',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 /**
- * Update order status (admin only)
+ * PUT /api/orders/:id/status
  */
 export const updateOrderStatus = async (req, res) => {
   try {
-    // Only admin can update order status via this endpoint
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -118,14 +128,7 @@ export const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status is required',
-      });
-    }
-
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'failed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -153,13 +156,12 @@ export const updateOrderStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update order status',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 /**
- * Cancel an order (user can cancel their own order if not paid)
+ * DELETE /api/orders/:id
  */
 export const cancelOrder = async (req, res) => {
   try {
@@ -184,7 +186,6 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
-    // Update order status to cancelled
     await order.update({ status: 'cancelled' });
 
     res.status(200).json({
@@ -197,21 +198,25 @@ export const cancelOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to cancel order',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 /**
- * Get invoice/receipt for an order (simplified as JSON)
+ * GET /api/orders/:id/invoice
  */
 export const getOrderInvoice = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { id } = req.params;
+    const userId = req.user?.id;
+
+    const where = id.startsWith('ORD-') ? { orderNumber: id } : { id };
+    if (userId && req.user.role !== 'admin') {
+      where.userId = userId;
+    }
 
     const order = await Order.findOne({
-      where: { id, userId },
+      where,
       include: [
         {
           model: OrderItem,
@@ -220,9 +225,12 @@ export const getOrderInvoice = async (req, res) => {
             {
               model: Material,
               as: 'material',
-              attributes: ['id', 'title', 'price', 'isFree'],
             },
           ],
+        },
+        {
+          model: Payment,
+          as: 'payments',
         },
       ],
     });
@@ -230,51 +238,33 @@ export const getOrderInvoice = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found or access denied',
+        message: 'Order not found',
       });
     }
 
-    // Calculate totals from order items (should match order.amount, but we recompute for safety)
-    let subtotal = 0;
-    order.items.forEach(item => {
-      const itemTotal = item.priceAtPurchase * item.quantity;
-      subtotal += itemTotal;
-    });
-    const taxRate = 0.1; // 10% tax (example)
-    const taxAmount = subtotal * taxRate;
-    const total = subtotal + taxAmount;
-
-    const invoice = {
-      orderId: order.id,
-      orderDate: order.createdAt,
-      status: order.status,
-      paymentStatus: order.paymentStatus,
-      customer: {
-        userId: order.userId,
-      },
-      items: order.items.map(item => ({
-        materialId: item.material.id,
-        title: item.material.title,
-        quantity: item.quantity,
-        priceAtPurchase: item.priceAtPurchase,
-        total: item.priceAtPurchase * item.quantity,
-      })),
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      taxAmount: parseFloat(taxAmount.toFixed(2)),
-      total: parseFloat(total.toFixed(2)),
-      // In a real system, you might generate a PDF or HTML template here.
-    };
-
     res.status(200).json({
       success: true,
-      invoice,
+      invoice: {
+        orderNumber: order.orderNumber,
+        createdAt: order.createdAt,
+        subtotal: order.subtotal,
+        discountAmount: order.discountAmount,
+        shippingCost: order.shippingCost,
+        taxAmount: order.taxAmount,
+        totalAmount: order.totalAmount,
+        currency: order.currency,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        shippingAddress: order.shippingAddress,
+        items: order.items,
+        payments: order.payments,
+      },
     });
   } catch (error) {
-    console.error('Get order invoice error:', error);
+    console.error('Get invoice error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate invoice',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

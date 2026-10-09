@@ -1,218 +1,278 @@
-import Cart from '../models/Cart.js';
-import CartItem from '../models/CartItem.js';
-import Material from '../models/Material.js';
-import Coupon from '../models/Coupon.js';
-import { Op } from 'sequelize';
+import crypto from 'crypto';
+import sequelize from '../config/db.js';
+import { toProduct } from './catalogController.js';
 
-/**
- * Get or create a cart for the current context (user or session)
- * @param {Object} req - Express request object
- * @returns {Promise<Cart>} The cart instance
- */
-const getOrCreateCart = async (req) => {
-  let cart;
-  const userId = req.user ? req.user.id : null;
-  const sessionId = req.headers['x-session-id'] || req.body.sessionId;
+const { Cart, CartItem, Material, Order, OrderItem, Coupon, Payment, User } = sequelize.models;
 
-  if (userId) {
-    // Try to get the user's cart
-    cart = await Cart.findOne({ where: { userId } });
-    if (!cart) {
-      cart = await Cart.create({ userId });
-    }
-  } else if (sessionId) {
-    // Try to get the cart by sessionId
-    cart = await Cart.findOne({ where: { sessionId } });
-    if (!cart) {
-      cart = await Cart.create({ sessionId });
-    }
-  } else {
-    throw new Error('Either user must be authenticated or sessionId must be provided');
+const TAX_RATE = 0.1;
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
   }
+}
 
-  return cart;
-};
-
-/**
- * Process guest checkout
- */
-export const guestCheckout = async (req, res) => {
-  try {
-    const { couponCode, shippingInfo, paymentInfo } = req.body;
-    const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-
-    if (!sessionId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Session ID is required for guest checkout',
-      });
-    }
-
-    // Process checkout for guest cart
-    const checkoutResult = await processCheckout(req, null, sessionId, couponCode, shippingInfo, paymentInfo);
-    res.status(200).json(checkoutResult);
-  } catch (error) {
-    console.error('Guest checkout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Guest checkout failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Process user checkout
- */
-export const userCheckout = async (req, res) => {
-  try {
-    const { couponCode, shippingInfo, paymentInfo } = req.body;
-    const userId = req.user.id;
-
-    // Process checkout for user cart
-    const checkoutResult = await processCheckout(req, userId, null, couponCode, shippingInfo, paymentInfo);
-    res.status(200).json(checkoutResult);
-  } catch (error) {
-    console.error('User checkout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'User checkout failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Common checkout processing logic
- */
-const processCheckout = async (req, userId, sessionId, couponCode, shippingInfo, paymentInfo) => {
-  // Get the cart
-  let cart;
-  if (userId) {
-    cart = await Cart.findOne({ where: { userId } });
-  } else {
-    cart = await Cart.findOne({ where: { sessionId } });
-  }
-
-  if (!cart) {
-    throw new Error('Cart not found');
-  }
-
-  // Get cart items with material details
-  const cartWithItems = await Cart.findByPk(cart.id, {
-    include: [
-      {
-        model: CartItem,
-        as: 'items',
-        include: [
-          {
-            model: Material,
-            as: 'material',
-            attributes: ['id', 'title', 'price', 'isFree'],
-          },
-        ],
-      },
-    ],
+// Helper to calculate totals & validate coupons
+export const evaluateCheckout = async ({ cart, couponCode, shippingAddress }) => {
+  const items = await CartItem.findAll({
+    where: { cartId: cart.id },
+    include: [{ model: Material, as: 'material' }],
   });
 
-  if (!cartWithItems || cartWithItems.items.length === 0) {
-    throw new Error('Cart is empty');
+  if (!items.length) {
+    throw new HttpError(400, 'Cart is empty');
   }
 
-  // Calculate subtotal
   let subtotal = 0;
-  cartWithItems.items.forEach(item => {
-    const itemTotal = item.priceAtAddition * item.quantity;
-    subtotal += itemTotal;
-  });
+  let hasPhysical = false;
 
-  // Apply coupon if provided
-  let discountAmount = 0;
-  let coupon = null;
-  if (couponCode) {
-    coupon = await Coupon.findOne({
-      where: {
-        code: couponCode.toUpperCase(),
-        isActive: true,
-        [Op.and]: [
-          { startDate: { [Op.lte]: new Date() } },
-          { endDate: { [Op.gte]: new Date() } },
-        ],
-      },
-    });
-
-    if (coupon) {
-      // Check usage limit
-      if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
-        throw new Error('Coupon usage limit exceeded');
-      }
-
-      // Check min purchase
-      if (coupon.minPurchase && subtotal < coupon.minPurchase) {
-        throw new Error(`Minimum purchase of ${coupon.minPurchase} required for this coupon`);
-      }
-
-      // Calculate discount
-      if (coupon.discountType === 'percentage') {
-        discountAmount = subtotal * (coupon.discountValue / 100);
-        // Apply max discount if set
-        if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-          discountAmount = coupon.maxDiscount;
-        }
-      } else if (coupon.discountType === 'fixed_amount') {
-        discountAmount = coupon.discountValue;
-      }
-    } else {
-      throw new Error('Invalid or expired coupon code');
+  const lineItems = items.map((ci) => {
+    const mat = ci.material;
+    if (!mat || !mat.isActive || !mat.isApproved) {
+      throw new HttpError(400, `Item "${mat ? mat.title : ci.materialId}" is no longer available`);
     }
-  }
-
-  const taxRate = 0.1; // 10% tax (example)
-  const taxAmount = (subtotal - discountAmount) * taxRate;
-  const total = subtotal - discountAmount + taxAmount;
-
-  // Clear the cart after successful checkout
-  await CartItem.destroy({
-    where: {
-      cartId: cart.id,
-    },
+    if (mat.format !== 'digital') {
+      hasPhysical = true;
+      if (mat.stockQuantity < ci.quantity) {
+        throw new HttpError(400, `Item "${mat.title}" has insufficient stock (${mat.stockQuantity} available)`);
+      }
+    }
+    const unitPrice = Number(mat.price);
+    const lineTotal = Math.round(unitPrice * ci.quantity * 100) / 100;
+    subtotal += lineTotal;
+    return {
+      materialId: mat.id,
+      title: mat.title,
+      format: mat.format,
+      quantity: ci.quantity,
+      unitPrice,
+      totalPrice: lineTotal,
+    };
   });
 
-  // If a coupon was used, increment its usage count
-  if (coupon) {
-    await coupon.increment('usageCount');
+  subtotal = Math.round(subtotal * 100) / 100;
+
+  // Coupon evaluation
+  let discountAmount = 0;
+  let validCoupon = null;
+  if (couponCode) {
+    const code = couponCode.trim().toUpperCase();
+    const c = await Coupon.findOne({ where: { code, isActive: true } });
+    if (!c) {
+      throw new HttpError(400, 'Invalid or expired coupon code');
+    }
+    const now = new Date();
+    if (c.validFrom && new Date(c.validFrom) > now) {
+      throw new HttpError(400, 'Coupon is not yet active');
+    }
+    if (c.validTo && new Date(c.validTo) < now) {
+      throw new HttpError(400, 'Coupon has expired');
+    }
+    if (c.minOrderAmount && subtotal < Number(c.minOrderAmount)) {
+      throw new HttpError(400, `Coupon requires a minimum order amount of $${Number(c.minOrderAmount).toFixed(2)}`);
+    }
+    if (c.discountType === 'percentage') {
+      discountAmount = Math.round((subtotal * (Number(c.discountValue) / 100)) * 100) / 100;
+    } else {
+      discountAmount = Math.min(Number(c.discountValue), subtotal);
+    }
+    validCoupon = c;
   }
+
+  const shippingCost = hasPhysical ? (subtotal > 50 ? 0 : 5.00) : 0.00;
+  const taxableAmount = Math.max(0, subtotal - discountAmount);
+  const taxAmount = Math.round(taxableAmount * TAX_RATE * 100) / 100;
+  const totalAmount = Math.round((taxableAmount + shippingCost + taxAmount) * 100) / 100;
 
   return {
-    success: true,
-    message: 'Checkout completed successfully',
-    orderSummary: {
-      cartId: cart.id,
-      userId: userId || null,
-      sessionId: sessionId || null,
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      discountAmount: parseFloat(discountAmount.toFixed(2)),
-      taxAmount: parseFloat(taxAmount.toFixed(2)),
-      total: parseFloat(total.toFixed(2)),
-      coupon: coupon ? {
-        code: coupon.code,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
-      } : null,
-      items: cartWithItems.items.map(item => ({
-        materialId: item.material.id,
-        title: item.material.title,
-        quantity: item.quantity,
-        priceAtAddition: parseFloat(item.priceAtAddition.toFixed(2)),
-        total: parseFloat((item.priceAtAddition * item.quantity).toFixed(2)),
-      })),
-    },
-    // In a real application, we would create an order record here
-    // For this task, we return the summary and clear the cart
+    lineItems,
+    hasPhysical,
+    subtotal,
+    discountAmount,
+    shippingCost,
+    taxAmount,
+    totalAmount,
+    coupon: validCoupon ? {
+      code: validCoupon.code,
+      discountType: validCoupon.discountType,
+      discountValue: Number(validCoupon.discountValue),
+      description: validCoupon.description,
+    } : null,
   };
 };
 
+/**
+ * Validate coupon code endpoint (for previewing discounts in Cart/Checkout)
+ * POST /api/checkout/validate-coupon
+ */
+export const validateCoupon = async (req, res) => {
+  try {
+    const { couponCode } = req.body;
+    if (!couponCode) {
+      return res.status(400).json({ success: false, message: 'Coupon code is required' });
+    }
+    const userId = req.user?.id;
+    const sessionId = req.headers['x-session-id'] || req.body.sessionId;
+    const cart = userId
+      ? await Cart.findOne({ where: { userId } })
+      : (sessionId ? await Cart.findOne({ where: { sessionId } }) : null);
+
+    if (!cart) {
+      return res.status(400).json({ success: false, message: 'Cart not found' });
+    }
+
+    const evaluation = await evaluateCheckout({ cart, couponCode });
+    res.json({
+      success: true,
+      coupon: evaluation.coupon,
+      discountAmount: evaluation.discountAmount,
+      subtotal: evaluation.subtotal,
+      totalAmount: evaluation.totalAmount,
+    });
+  } catch (error) {
+    if (error instanceof HttpError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    console.error('Validate coupon error:', error);
+    res.status(500).json({ success: false, message: 'Failed to validate coupon' });
+  }
+};
+
+/**
+ * Perform checkout and create an order (both guest and user)
+ */
+export const createOrderFromCheckout = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const userId = req.user?.id;
+    const sessionId = req.headers['x-session-id'] || req.body.sessionId;
+    const { couponCode, shippingAddress, billingAddress, paymentMethod = 'card', notes } = req.body;
+
+    const cart = userId
+      ? await Cart.findOne({ where: { userId } })
+      : (sessionId ? await Cart.findOne({ where: { sessionId } }) : null);
+
+    if (!cart) {
+      throw new HttpError(400, 'Cart not found');
+    }
+
+    const evalResult = await evaluateCheckout({ cart, couponCode, shippingAddress });
+    if (evalResult.hasPhysical && (!shippingAddress || !shippingAddress.addressLine1 || !shippingAddress.city)) {
+      throw new HttpError(400, 'Shipping address is required for physical materials');
+    }
+
+    // Determine user to associate with order
+    let orderUserId = userId;
+    if (!orderUserId) {
+      // For guest checkout, find or create a guest customer user record
+      const guestEmail = shippingAddress?.email || req.body.guestEmail;
+      if (!guestEmail) {
+        throw new HttpError(400, 'Email address is required for guest checkout');
+      }
+      let guestUser = await User.findOne({ where: { email: guestEmail } });
+      if (!guestUser) {
+        guestUser = await User.create({
+          id: crypto.randomUUID(),
+          email: guestEmail,
+          firstName: shippingAddress?.firstName || 'Guest',
+          lastName: shippingAddress?.lastName || 'Customer',
+          password: crypto.randomBytes(16).toString('hex'), // random password
+          role: 'student',
+          isVerified: true,
+        }, { transaction: t });
+      }
+      orderUserId = guestUser.id;
+    }
+
+    const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const order = await Order.create({
+      id: crypto.randomUUID(),
+      userId: orderUserId,
+      orderNumber,
+      status: 'pending',
+      subtotal: evalResult.subtotal,
+      taxAmount: evalResult.taxAmount,
+      shippingCost: evalResult.shippingCost,
+      discountAmount: evalResult.discountAmount,
+      totalAmount: evalResult.totalAmount,
+      currency: 'USD',
+      paymentStatus: 'pending',
+      shippingAddress: shippingAddress || null,
+      billingAddress: billingAddress || shippingAddress || null,
+      notes: notes || null,
+    }, { transaction: t });
+
+    // Create Order Items & reduce inventory if physical
+    for (const item of evalResult.lineItems) {
+      await OrderItem.create({
+        id: crypto.randomUUID(),
+        orderId: order.id,
+        materialId: item.materialId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      }, { transaction: t });
+
+      if (item.format !== 'digital') {
+        const mat = await Material.findByPk(item.materialId, { transaction: t });
+        if (mat) {
+          mat.stockQuantity = Math.max(0, mat.stockQuantity - item.quantity);
+          await mat.save({ transaction: t });
+        }
+      }
+    }
+
+    // Record Coupon usage if applied
+    if (evalResult.coupon) {
+      const c = await Coupon.findOne({ where: { code: evalResult.coupon.code } });
+      if (c && c.maxUses > 0) {
+        await sequelize.query(
+          'INSERT INTO coupon_usage (id, coupon_id, user_id, order_id) VALUES (?, ?, ?, ?)',
+          { replacements: [crypto.randomUUID(), c.id, orderUserId, order.id], transaction: t }
+        );
+      }
+    }
+
+    // Clear cart
+    await CartItem.destroy({ where: { cartId: cart.id }, transaction: t });
+
+    await t.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        currency: order.currency,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        subtotal: order.subtotal,
+        taxAmount: order.taxAmount,
+        shippingCost: order.shippingCost,
+        discountAmount: order.discountAmount,
+        items: evalResult.lineItems,
+      },
+    });
+  } catch (error) {
+    await t.rollback();
+    if (error instanceof HttpError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    console.error('Checkout error:', error);
+    res.status(500).json({ success: false, message: 'Checkout failed' });
+  }
+};
+
+export const guestCheckout = createOrderFromCheckout;
+export const userCheckout = createOrderFromCheckout;
+
 export default {
+  validateCoupon,
+  createOrderFromCheckout,
   guestCheckout,
   userCheckout,
 };

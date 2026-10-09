@@ -197,3 +197,24 @@ Rate limit headers are included in all responses:
 ## Versioning
 
 The API is versioned using the `/api/v1/` prefix. Future versions will be available under `/api/v2/` etc., while maintaining backward compatibility where possible.
+---
+
+## Product Discovery Endpoints (implemented)
+
+Product objects: `{ id, name, price, originalPrice, discount, rating, reviewCount, thumbnail, isNew, isFeatured, subject, grade, examYear, format, category }`.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/api/search` , `/api/materials` | – | Query: `q`, `subject`, `grade`, `examYear`, `format` (PDF/ePub/Print/Video), `minPrice`, `maxPrice`, `categoryId`, `sort` (`relevance`, `price-low`, `price-high`, `rating`, `newest`, `featured`), `page`, `limit`. Returns `{ products, count, totalPages, currentPage }` |
+| GET | `/api/materials/featured` | – | `limit` |
+| GET | `/api/materials/suggest?q=` | – | Title autocomplete |
+| GET | `/api/materials/:id` | – | Full product + approved reviews |
+| GET | `/api/materials/:id/related` | – | Same category/subject |
+| GET | `/api/categories/browse` | – | Categories with `productCount` |
+| GET | `/api/categories/:idOrName/products` | – | Category + its products (`sort`) |
+| GET | `/api/wishlist` | Bearer | Saved items |
+| POST | `/api/wishlist` | Bearer | `{ productId }` (idempotent) |
+| DELETE | `/api/wishlist/:id` | Bearer | Item id or product id |
+| DELETE | `/api/wishlist` | Bearer | Clear all |
+
+DB setup for these features: `sql/migrations/001_product_discovery.sql`; demo data: `sql/seed_catalog.sql`.

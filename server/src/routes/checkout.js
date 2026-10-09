@@ -1,16 +1,20 @@
 import { Router } from 'express';
 import {
+  validateCoupon,
+  createOrderFromCheckout,
   guestCheckout,
   userCheckout,
 } from '../controllers/checkoutController.js';
-import { authenticate } from '../middleware/auth.js';
+import { optionalAuth, authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-// Guest checkout (does not require authentication, but requires sessionId)
-router.post('/guest', guestCheckout);
+// Validate coupon preview
+router.post('/validate-coupon', optionalAuth, validateCoupon);
 
-// User checkout (requires authentication)
+// Checkout endpoints
+router.post('/', optionalAuth, createOrderFromCheckout);
+router.post('/guest', optionalAuth, guestCheckout);
 router.post('/user', authenticate, userCheckout);
 
 export default router;

@@ -1,82 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ProductCard from './ProductCard';
+import { apiFetch } from '../api';
 import './RelatedProducts.css';
 
-const RelatedProducts = ({ productId, category }) => {
+const RelatedProducts = ({ productId }) => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // In a real implementation, we would fetch related products based on category
-  // For now, we'll use mock data
   React.useEffect(() => {
+    let cancelled = false;
     const fetchRelatedProducts = async () => {
       try {
         setLoading(true);
-        // In a real implementation, this would call an API like:
-        // const response = await fetch(`/api/products/related?productId=${productId}&category=${category}`, { credentials: 'include' });
-
-        // For now, we'll simulate with placeholder data
-        const mockRelatedProducts = [
-          {
-            id: 'REL-001',
-            name: 'Geometry Practice Worksheets',
-            price: 19.99,
-            rating: 4.3,
-            reviewCount: 67,
-            thumbnail: '/placeholder-related-1.jpg',
-            isNew: true,
-            isFeatured: false
-          },
-          {
-            id: 'REL-002',
-            name: 'Algebra 2 Formula Sheet',
-            price: 9.99,
-            rating: 4.6,
-            reviewCount: 89,
-            thumbnail: '/placeholder-related-2.jpg',
-            isNew: false,
-            isFeatured: true
-          },
-          {
-            id: 'REL-003',
-            name: 'Trigonometry Basics Guide',
-            price: 14.99,
-            rating: 4.4,
-            reviewCount: 56,
-            thumbnail: '/placeholder-related-3.jpg',
-            isNew: false,
-            isFeatured: false
-          },
-          {
-            id: 'REL-004',
-            name: 'Pre-Calculus Problems',
-            price: 24.99,
-            originalPrice: 29.99,
-            discount: 17,
-            rating: 4.7,
-            reviewCount: 103,
-            thumbnail: '/placeholder-related-4.jpg',
-            isNew: false,
-            isFeatured: false
-          }
-        ];
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        setRelatedProducts(mockRelatedProducts);
-        setLoading(false);
+        setError(null);
+        const data = await apiFetch(`/api/materials/${encodeURIComponent(productId)}/related?limit=4`);
+        if (!cancelled) setRelatedProducts(data.products);
       } catch (err) {
-        setError(err.message || 'Failed to load related products');
-        setLoading(false);
+        if (!cancelled) setError(err.message || 'Failed to load related products');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    if (productId && category) {
+    if (productId) {
       fetchRelatedProducts();
     }
-  }, [productId, category]);
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
 
   if (loading) {
     return (

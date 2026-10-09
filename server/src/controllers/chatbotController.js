@@ -1,5 +1,6 @@
 import ChatbotService from '../services/chatbotService.js';
-import ChatbotInteraction from '../models/ChatbotInteraction.js';
+import sequelize from '../config/db.js';
+const { ChatbotInteraction } = sequelize.models;
 
 /**
  * Send a message to the chatbot and get a response
@@ -27,7 +28,7 @@ export const sendMessage = async (req, res) => {
     const interaction = await ChatbotInteraction.create({
       userId,
       sessionId: result.sessionId,
-      message: result.message,
+      message,
       response: result.response,
       intent: result.intent,
       confidenceScore: result.confidence,

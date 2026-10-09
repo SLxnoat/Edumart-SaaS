@@ -187,14 +187,14 @@ const Reviews = () => {
             ← Back to Home
           </Link>
           <h1>My Reviews</h1>
-          <p className="reviews-subtitle">Reviews you've written for products</p>
+          <p className="reviews-subtitle">Reviews you&apos;ve written for products</p>
         </div>
         <div className="reviews-content">
           <div className="empty-state">
             <div className="empty-state-icon">📝</div>
-            <p className="empty-state-title">You haven't written any reviews yet</p>
+            <p className="empty-state-title">You haven&apos;t written any reviews yet</p>
             <p className="empty-state-description">
-              Share your experience with other students by writing reviews for products you've purchased.
+              Share your experience with other students by writing reviews for products you&apos;ve purchased.
             </p>
             <Link to="/catalog" className="btn btn-outline">
               Browse Products
@@ -212,7 +212,7 @@ const Reviews = () => {
           ← Back to Home
         </Link>
         <h1>My Reviews</h1>
-        <p className="reviews-subtitle">Reviews you've written for products</p>
+        <p className="reviews-subtitle">Reviews you&apos;ve written for products</p>
       </div>
 
       {/* Actions Bar */}

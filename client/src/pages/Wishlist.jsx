@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ProductCard from '../components/ProductCard';
+import { apiFetch, removeFromWishlist, addToCart } from '../api';
 import '../components/Wishlist.css';
 
 const WishlistPage = () => {
@@ -10,93 +10,61 @@ const WishlistPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     const fetchWishlist = async () => {
       try {
         setLoading(true);
-        // In a real implementation, this would call an API like:
-        // const response = await fetch('/api/wishlist', { credentials: 'include' });
-
-        // For now, we'll simulate with placeholder data that matches expected structure
-        // This data would normally come from the backend
-        const mockWishlistItems = [
-          {
-            id: 'WL-001',
-            product: {
-              id: 'PROD-002',
-              name: 'Biology Revision Notes',
-              price: 19.99,
-              rating: 4.5,
-              reviewCount: 89,
-              thumbnail: '/placeholder-product-2.jpg',
-              isNew: true,
-              isFeatured: false
-            },
-            addedAt: '2026-09-28T10:30:00Z'
-          },
-          {
-            id: 'WL-002',
-            product: {
-              id: 'PROD-005',
-              name: 'English Literature Study Guide',
-              price: 14.99,
-              rating: 4.3,
-              reviewCount: 78,
-              thumbnail: '/placeholder-product-5.jpg',
-              isNew: true,
-              isFeatured: false
-            },
-            addedAt: '2026-09-25T14:15:00Z'
-          },
-          {
-            id: 'WL-003',
-            product: {
-              id: 'PROD-006',
-              name: 'Math Problem Solving Workbook',
-              price: 22.99,
-              rating: 4.7,
-              reviewCount: 103,
-              thumbnail: '/placeholder-product-6.jpg',
-              isNew: false,
-              isFeatured: false
-            },
-            addedAt: '2026-09-20T09:45:00Z'
-          }
-        ];
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setWishlistItems(mockWishlistItems);
-        setLoading(false);
+        const data = await apiFetch('/api/wishlist', { auth: true });
+        if (!cancelled) setWishlistItems(data.items);
       } catch (err) {
-        setError(err.message || 'Failed to load wishlist');
-        setLoading(false);
+        if (!cancelled) {
+          if (err.status === 401) navigate('/login');
+          else setError(err.message || 'Failed to load wishlist');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchWishlist();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const handleRemoveFromWishlist = async (itemId) => {
     try {
-      // In a real implementation, this would call an API like:
-      // await fetch(`/api/wishlist/${itemId}`, { method: 'DELETE', credentials: 'include' });
-
-      // For now, remove from state
+      await removeFromWishlist(itemId);
       setWishlistItems(prev => prev.filter(item => item.id !== itemId));
     } catch (err) {
       setError(err.message || 'Failed to remove item from wishlist');
     }
   };
 
-  const handleMoveToCart = async (itemId) => {
+  const moveItemToCart = async (item) => {
+    await addToCart(item.product.id, 1);
+    await removeFromWishlist(item.id);
+  };
+
+  const handleMoveToCart = async (item) => {
     try {
-      // In a real implementation, this would move item from wishlist to cart via API
-      // For now, we'll remove from wishlist and show success message
-      setWishlistItems(prev => prev.filter(item => item.id !== itemId));
-      alert('Item moved to your cart!');
+      await moveItemToCart(item);
+      setWishlistItems(prev => prev.filter(i => i.id !== item.id));
+      navigate('/cart');
     } catch (err) {
       setError(err.message || 'Failed to move item to cart');
+    }
+  };
+
+  const handleMoveAllToCart = async () => {
+    try {
+      for (const item of wishlistItems) {
+        await moveItemToCart(item);
+      }
+      setWishlistItems([]);
+      navigate('/cart');
+    } catch (err) {
+      setError(err.message || 'Failed to move items to cart');
     }
   };
 
@@ -212,7 +180,7 @@ const WishlistPage = () => {
               <div className="wishlist-item-actions">
                 <button
                   className="btn btn-outline"
-                  onClick={() => handleMoveToCart(item.id)}
+                  onClick={() => handleMoveToCart(item)}
                 >
                   Move to Cart
                 </button>
@@ -232,11 +200,7 @@ const WishlistPage = () => {
       <div className="wishlist-actions">
         <button
           className="btn btn-outline"
-          onClick={() => {
-            // In a real app, this would move all items to cart
-            alert('All items moved to cart!');
-            setWishlistItems([]);
-          }}
+          onClick={handleMoveAllToCart}
         >
           Move All to Cart
         </button>

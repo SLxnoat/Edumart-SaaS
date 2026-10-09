@@ -11,6 +11,8 @@ import savedSearchFactory from '../models/SavedSearch.js';
 import orderFactory from '../models/Order.js';
 import orderItemFactory from '../models/OrderItem.js';
 import notificationFactory from '../models/Notification.js';
+import paymentFactory from '../models/Payment.js';
+import wishlistFactory from '../models/Wishlist.js';
 import reviewFactory from '../models/Review.js';
 import chatbotInteractionFactory from '../models/ChatbotInteraction.js';
 
@@ -44,11 +46,13 @@ const SavedSearch = savedSearchFactory(sequelize, Sequelize.DataTypes);
 const Order = orderFactory(sequelize, Sequelize.DataTypes);
 const OrderItem = orderItemFactory(sequelize, Sequelize.DataTypes);
 const Notification = notificationFactory(sequelize, Sequelize.DataTypes);
+const Payment = paymentFactory(sequelize, Sequelize.DataTypes);
+const Wishlist = wishlistFactory(sequelize, Sequelize.DataTypes);
 const Review = reviewFactory(sequelize, Sequelize.DataTypes);
 const ChatbotInteraction = chatbotInteractionFactory(sequelize, Sequelize.DataTypes);
 
 // Call associate methods
-[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch, Order, OrderItem, Notification, Review, ChatbotInteraction].forEach(model => {
+[User, Category, Material, Cart, CartItem, Coupon, SearchHistory, SavedSearch, Order, OrderItem, Notification, Wishlist, Payment, Review, ChatbotInteraction].forEach(model => {
   if (model.associate) {
     model.associate({
       User,
@@ -62,6 +66,8 @@ const ChatbotInteraction = chatbotInteractionFactory(sequelize, Sequelize.DataTy
       Order,
       OrderItem,
       Notification,
+      Wishlist,
+      Payment,
       Review,
       ChatbotInteraction,
     });

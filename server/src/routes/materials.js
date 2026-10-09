@@ -1,24 +1,29 @@
 import { Router } from 'express';
 import {
-  getMaterials,
-  getMaterialById,
   createMaterial,
   updateMaterial,
   deleteMaterial,
-  getFeaturedMaterials,
-  getMaterialsByCategory,
-  getSearchSuggestions,
 } from '../controllers/materialController.js';
+import {
+  listProducts,
+  getFeatured,
+  suggest,
+  getProduct,
+  getRelated,
+  getCategoryWithProducts,
+} from '../controllers/catalogController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
 // Public routes
-router.get('/', getMaterials);
-router.get('/featured', getFeaturedMaterials);
-router.get('/category/:categoryId', getMaterialsByCategory);
-router.get('/:id', getMaterialById);
-router.get('/suggest', getSearchSuggestions);
+// NOTE: fixed paths must be registered before '/:id'
+router.get('/', listProducts);
+router.get('/featured', getFeatured);
+router.get('/suggest', suggest);
+router.get('/category/:id', getCategoryWithProducts);
+router.get('/:id/related', getRelated);
+router.get('/:id', getProduct);
 
 // Protected routes (require authentication)
 router.post('/', authenticate, createMaterial);

@@ -24,8 +24,9 @@ export default (sequelize, DataTypes) => {
     },
     materialId: {
       type: DataTypes.UUID,
+      field: 'product_id',
       references: {
-        model: 'materials',
+        model: 'products',
         key: 'id',
       },
       allowNull: false,

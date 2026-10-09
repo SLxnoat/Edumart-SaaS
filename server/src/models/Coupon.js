@@ -1,5 +1,3 @@
-import { Sequelize, DataTypes } from 'sequelize';
-
 export default (sequelize, DataTypes) => {
   const Coupon = sequelize.define('Coupon', {
     id: {
@@ -8,60 +6,61 @@ export default (sequelize, DataTypes) => {
       primaryKey: true,
     },
     code: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(50),
       allowNull: false,
       unique: true,
-      validate: {
-        notEmpty: true,
-        isUppercase: true,
-      },
+    },
+    description: {
+      type: DataTypes.TEXT,
     },
     discountType: {
       type: DataTypes.ENUM('percentage', 'fixed_amount'),
-      allowNull: false,
+      defaultValue: 'percentage',
+      field: 'discount_type',
     },
     discountValue: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-      validate: {
-        min: 0,
-      },
+      field: 'discount_value',
     },
-    minPurchase: {
+    minOrderAmount: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
+      defaultValue: 0.00,
+      field: 'min_order_amount',
     },
-    maxDiscount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
-    },
-    startDate: {
+    validFrom: {
       type: DataTypes.DATE,
-      allowNull: false,
+      field: 'valid_from',
     },
-    endDate: {
+    validTo: {
       type: DataTypes.DATE,
-      allowNull: false,
+      field: 'valid_to',
+    },
+    maxUses: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      field: 'max_uses',
+    },
+    createdBy: {
+      type: DataTypes.UUID,
+      field: 'created_by',
     },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
-    },
-    usageLimit: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    usageCount: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
+      field: 'is_active',
     },
   }, {
     tableName: 'coupons',
     timestamps: true,
+    updatedAt: false,
     underscored: true,
   });
+
+  Coupon.associate = (models) => {
+    Coupon.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' });
+  };
 
   return Coupon;
 };

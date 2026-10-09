@@ -1,175 +1,47 @@
-import { Sequelize, DataTypes } from 'sequelize';
-
+// Material == a row in the `products` table (see sql/database_schema.sql).
 export default (sequelize, DataTypes) => {
   const Material = sequelize.define('Material', {
-    id: {
-      type: DataTypes.INTEGER,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    title: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-        len: [3, 200],
-      },
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    shortDescription: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    price: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      defaultValue: 0.00,
-      validate: {
-        min: 0,
-      },
-    },
-    isFree: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
-    // For educational materials
-    subject: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    grade_level: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    exam_year: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    categoryId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'product_categories',
-        key: 'id',
-      },
-    },
-    product_type: {
-      type: DataTypes.ENUM("note", "video", "quiz", "assignment", "textbook", "other"),
+    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    sellerId: { type: DataTypes.UUID, allowNull: false },
+    categoryId: { type: DataTypes.INTEGER, allowNull: false },
+    title: { type: DataTypes.STRING(255), allowNull: false, validate: { notEmpty: true, len: [3, 255] } },
+    description: { type: DataTypes.TEXT, allowNull: false },
+    shortDescription: { type: DataTypes.STRING(500) },
+    price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0, validate: { min: 0 } },
+    originalPrice: { type: DataTypes.DECIMAL(10, 2) },
+    sku: { type: DataTypes.STRING(100), unique: true },
+    subject: { type: DataTypes.STRING(100), allowNull: false },
+    gradeLevel: { type: DataTypes.STRING(50), allowNull: false },
+    examYear: { type: DataTypes.INTEGER },
+    productType: {
+      type: DataTypes.ENUM('past_paper', 'ebook', 'model_paper', 'revision_notes', 'lecture_pack', 'other'),
       allowNull: false,
       defaultValue: 'other',
     },
-    // File/image handling
-    thumbnailUrl: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    previewImages: {
-      type: DataTypes.JSON, // Array of image URLs
-      allowNull: false,
-      defaultValue: [],
-    },
-    fileAttachments: {
-      type: DataTypes.JSON, // Array of file objects {name, url, type, size}
-      allowNull: false,
-      defaultValue: [],
-    },
-    // Status and visibility
-    isPublished: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
-    isFeatured: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
-    // Moderation
-    is_approved: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      allowNull: false,
-      defaultValue: 'pending',
-    },
-    moderationFeedback: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    // Metadata
-    viewCount: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
-    downloadCount: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
-    },
-    // For tracking
-    createdBy: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-      allowNull: false,
-    },
-    updatedBy: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-      allowNull: false,
-    },
+    format: { type: DataTypes.ENUM('digital', 'physical', 'both'), allowNull: false, defaultValue: 'digital' },
+    isDownloadable: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    isShippable: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    stockQuantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    ratingAverage: { type: DataTypes.DECIMAL(3, 2), defaultValue: 0 },
+    ratingCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    isFeatured: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    isApproved: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    thumbnailUrl: { type: DataTypes.STRING(500) },
+    viewCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   }, {
     tableName: 'products',
     timestamps: true,
     underscored: true,
-    indexes: [
-      { fields: ['title'] },
-      { fields: ['subject'] },
-      { fields: ['grade_level'] },
-      { fields: ['exam_year'] },
-      { fields: ['product_type'] },
-      { fields: ['price'] },
-      { fields: ['is_approved'] },
-    ],
   });
+
   Material.associate = (models) => {
-    Material.belongsTo(models.Category, {
-      foreignKey: 'categoryId',
-      as: 'category',
-    });
-    Material.belongsTo(models.User, {
-      foreignKey: 'createdBy',
-      as: 'creator',
-    });
-    Material.belongsTo(models.User, {
-      foreignKey: 'updatedBy',
-      as: 'updater',
-    });
-    Material.hasMany(models.CartItem, {
-      foreignKey: 'materialId',
-      as: 'cartItems',
-    });
-    Material.hasMany(models.OrderItem, {
-      foreignKey: 'materialId',
-      as: 'orderItems',
-    });
-    Material.hasMany(models.Review, {
-      foreignKey: 'materialId',
-      as: 'reviews',
-    });
+    Material.belongsTo(models.Category, { foreignKey: 'categoryId', as: 'category' });
+    Material.belongsTo(models.User, { foreignKey: 'sellerId', as: 'seller' });
+    Material.hasMany(models.CartItem, { foreignKey: 'materialId', as: 'cartItems' });
+    Material.hasMany(models.OrderItem, { foreignKey: 'materialId', as: 'orderItems' });
+    Material.hasMany(models.Wishlist, { foreignKey: 'productId', as: 'wishlistEntries' });
   };
+
   return Material;
 };

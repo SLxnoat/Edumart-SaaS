@@ -338,7 +338,7 @@ const ProfilePage = () => {
                   <div className="activity-icon">💬</div>
                   <div className="activity-details">
                     <p className="activity-text">
-                      Left a review on "Algebra 1 Past Papers Bundle"
+                      Left a review on &quot;Algebra 1 Past Papers Bundle&quot;
                     </p>
                     <p className="activity-time">5 days ago</p>
                   </div>
@@ -391,7 +391,7 @@ const ProfilePage = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-state-icon">📦</div>
-                <p className="empty-state-title">You haven't placed any orders yet</p>
+                <p className="empty-state-title">You haven&apos;t placed any orders yet</p>
                 <p className="empty-state-description">
                   Start shopping to see your order history here.
                 </p>

@@ -6,15 +6,22 @@ import {
   cancelOrder,
   getOrderInvoice,
 } from '../controllers/orderController.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// All routes require authentication
+// Order history (requires auth)
+router.get('/', authenticate, getOrderHistory);
 router.get('/history', authenticate, getOrderHistory);
-router.get('/:id', authenticate, getOrderById);
+
+// Single order details & invoice (optionalAuth allows guest lookup right after checkout)
+router.get('/:id', optionalAuth, getOrderById);
+router.get('/:id/invoice', optionalAuth, getOrderInvoice);
+
+// Order status update (admin only checked in controller)
 router.put('/:id/status', authenticate, updateOrderStatus);
+
+// Order cancellation (requires auth)
 router.delete('/:id', authenticate, cancelOrder);
-router.get('/:id/invoice', authenticate, getOrderInvoice);
 
 export default router;

@@ -33,4 +33,17 @@ export const authenticate = (req, res, next) => {
   }
 };
 
-export default { authenticate };
+// Like authenticate, but anonymous requests (guest carts) are allowed through.
+export const optionalAuth = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (token) {
+    try {
+      req.user = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+  }
+  next();
+};
+
+export default { authenticate, optionalAuth };

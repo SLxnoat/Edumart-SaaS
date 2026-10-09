@@ -1,5 +1,8 @@
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Chatbot from './components/Chatbot';
+import ProductCard from './components/ProductCard';
+import { apiFetch } from './api';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ProfilePage from './pages/Profile';
@@ -15,7 +18,9 @@ import Category from './pages/Category';
 import SearchResults from './pages/SearchResults';
 import ProductDetail from './pages/ProductDetail';
 import Wishlist from './pages/Wishlist';
-import RelatedProducts from './components/RelatedProducts';
+import CartPage from './pages/Cart';
+import CheckoutPage from './pages/Checkout';
+import OrderConfirmationPage from './pages/OrderConfirmation';
 import './components/SellerDashboard.css';
 import './components/AdminDashboard.css';
 import './components/Notifications.css';
@@ -26,6 +31,7 @@ import './components/SearchResults.css';
 import './components/ProductDetail.css';
 import './components/RelatedProducts.css';
 import './components/Wishlist.css';
+import './components/Cart.css';
 
 function HomePage() {
   return (
@@ -74,56 +80,71 @@ function HomePage() {
 }
 
 function CatalogPage() {
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [featured, setFeatured] = useState([]);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([apiFetch('/api/categories/browse'), apiFetch('/api/materials/featured?limit=6')])
+      .then(([cats, feat]) => {
+        if (cancelled) return;
+        setCategories(cats.categories);
+        setFeatured(feat.products);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err.message || 'Failed to load catalog');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    navigate(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search');
+  };
   return (
     <div className="page-shell">
       <h1>Catalog</h1>
       <p>Search, filter, and compare learning resources.</p>
 
       {/* Search bar */}
-      <div className="catalog-search">
+      <form className="catalog-search" onSubmit={handleSearch}>
         <input
           type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for subjects, grades, exam years..."
           className="search-input"
         />
-        <button className="btn btn-primary">Search</button>
-      </div>
+        <button type="submit" className="btn btn-primary">Search</button>
+      </form>
 
       {/* Quick category links */}
       <div className="catalog-categories">
         <h2>Browse by Category</h2>
         <div className="category-list">
-          <Link to="/category/mathematics" className="category-link">Mathematics</Link>
-          <Link to="/category/biology" className="category-link">Biology</Link>
-          <Link to="/category/chemistry" className="category-link">Chemistry</Link>
-          <Link to="/category/physics" className="category-link">Physics</Link>
-          <Link to="/category/english" className="category-link">English</Link>
-          <Link to="/category/history" className="category-link">History</Link>
+          {categories.map((c) => (
+            <Link key={c.id} to={`/category/${c.id}`} className="category-link">{c.name}</Link>
+          ))}
         </div>
       </div>
 
       {/* Featured products */}
       <div className="catalog-featured">
         <h2>Featured Resources</h2>
+        {loadError && <p className="alert alert-error">{loadError}</p>}
         <div className="featured-products">
-          {/* Product cards would go here in a real implementation */}
-          <div className="placeholder-product">
-            <div className="product-placeholder">Featured Product 1</div>
-          </div>
-          <div className="placeholder-product">
-            <div className="product-placeholder">Featured Product 2</div>
-          </div>
-          <div className="placeholder-product">
-            <div className="product-placeholder">Featured Product 3</div>
-          </div>
+          {featured.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
         </div>
       </div>
     </div>
   );
-}
-
-function CartPage() {
-  return <div className="page-shell"><h1>Cart</h1><p>Review items, apply coupons, and continue to checkout.</p></div>;
 }
 
 // Placeholder pages for future implementation
@@ -149,6 +170,9 @@ export default function App() {
         {/* Product Discovery Routes */}
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
+        <Route path="/orders/:orderId" element={<OrderConfirmationPage />} />
         <Route path="/category/:categoryId?" element={<Category />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
