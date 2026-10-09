@@ -54,15 +54,15 @@ This document tracks the implementation status of all UI screens and components 
 ### 2.1 Homepage with Featured Categories and Recommendations
 - [x] Enhance HomePage.jsx to show featured categories (basic implementation)
 - [ ] Add recommendation section (personalized/popular items)
-- [ ] Wire up to category and product API endpoints
-- [ ] Implement loading states and error handling
+- [x] Wire up to category and product API endpoints
+- [x] Implement loading states and error handling
 
 ### 2.2 Category Browsing Page
 - [x] Create CategoryPage component (basic implementation with mock data)
 - [x] Design UI for category grid/list view (per wireframes)
-- [ ] Implement category navigation and filtering
-- [ ] Wire up to category API endpoints
-- [ ] Add breadcrumb navigation
+- [x] Implement category navigation and filtering
+- [x] Wire up to category API endpoints
+- [x] Add breadcrumb navigation (Home / Catalog / Category)
 
 ### 2.3 Search Results Page with Filters
 - [x] Enhanced CatalogPage.jsx with basic search functionality
@@ -70,50 +70,50 @@ This document tracks the implementation status of all UI screens and components 
 - [x] Add filter sidebar (subject, grade, exam year, format, price range)
 - [x] Implement sort options (relevance, price-low, price-high, rating, newest)
 - [ ] Add grid/list view toggle
-- [x] Wire up to search API endpoint (mock)
-- [ ] Implement pagination or infinite scroll
+- [x] Wire up to search API endpoint
+- [x] Implement pagination or infinite scroll (Load more & pagination)
 - [x] Add "no results" state
 
 ### 2.4 Product Listing/Grid View
 - [x] Create ProductCard component (reusable)
 - [x] Implement product grid layout (per wireframes)
 - [x] Add product badges (new, sale, featured)
-- [ ] Wire up product data to cards
+- [x] Wire up product data to cards
 - [x] Implement hover states and quick actions
 
 ### 2.5 Product Detail Page
 - [x] Create ProductDetailPage component (basic implementation with mock data)
 - [x] Design layout: image gallery, description, pricing, reviews (per wireframes)
-- [ ] Add image zoom/switch functionality
+- [x] Add image zoom/switch functionality
 - [x] Implement "Add to cart" and "Save for later" buttons
 - [x] Add quantity selector with validation
-- [ ] Wire up to product detail API endpoint
+- [x] Wire up to product detail API endpoint
 - [x] Add related products section
 - [ ] Implement review display and submission form
-- [ ] Add seller information and ratings
+- [x] Add seller information and ratings
 - [x] Implement SEO-friendly URLs (/product/:id or /product/:slug)
 
 ### 2.6 Related Products Section
 - [x] Create RelatedProducts component (basic implementation with mock data)
-- [ ] Implement algorithm for related products (same category, similar tags)
-- [ ] Wire up to related products API endpoint
+- [x] Implement algorithm for related products (same category, similar tags)
+- [x] Wire up to related products API endpoint
 - [x] Design UI per wireframes (horizontal scroll or grid)
 
 ### 2.7 Save for Later/Wishlist Functionality
 - [x] Add wishlist button to ProductCard and ProductDetailPage
 - [x] Create WishlistPage component (basic implementation with mock data)
 - [x] Implement add/remove from wishlist functionality
-- [ ] Wire up to wishlist API endpoints
+- [x] Wire up to wishlist API endpoints
 - [ ] Add wishlist count indicator in header
 
 ## 3. Shopping Cart & Checkout Flow (Bhanuka & Charuka)
 
 ### 3.1 Mini Cart (Accessible from Header)
-- [ ] Create MiniCart component in header
-- [ ] Implement cart item count and preview
-- [ ] Add cart dropdown on hover/click
-- [ ] Wire up to cart API for real-time updates
-- [ ] Implement "View Cart" and "Checkout" buttons
+- [x] Create MiniCart component in header
+- [x] Implement cart item count and preview
+- [x] Add cart dropdown on hover/click
+- [x] Wire up to cart API for real-time updates
+- [x] Implement "View Cart" and "Checkout" buttons
 
 ### 3.2 Full Cart Page
 - [x] CartPage exists (basic)
@@ -159,19 +159,19 @@ This document tracks the implementation status of all UI screens and components 
 - [ ] Wire "Place Order" button to payment processing
 
 ### 3.4 Order Confirmation Page
-- [ ] Create OrderConfirmationPage component
-- [ ] Display order number and details
-- [ ] Show estimated delivery date
-- [ ] Provide actions: Track order, Continue shopping, View order history
-- [ ] Wire up to order confirmation API endpoint
+- [x] Create OrderConfirmationPage component
+- [x] Display order number and details
+- [x] Show estimated delivery date
+- [x] Provide actions: Track order, Continue shopping, View order history
+- [x] Wire up to order confirmation API endpoint
 - [ ] Add social sharing options
 
 ### 3.5 Order History Page
-- [ ] Create OrderHistoryPage component
-- [ ] Implement order list with filtering (status, date)
-- [ ] Add pagination or infinite scroll
-- [ ] Wire up to order history API endpoint
-- [ ] Implement order status badges
+- [x] Create OrderHistoryPage component
+- [x] Implement order list with filtering (status, date)
+- [x] Add pagination or infinite scroll
+- [x] Wire up to order history API endpoint
+- [x] Implement order status badges
 - [ ] Add reorder/cancel options (where applicable)
 
 ### 3.6 Order Detail Page

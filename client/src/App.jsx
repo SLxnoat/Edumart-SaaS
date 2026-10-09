@@ -21,6 +21,9 @@ import Wishlist from './pages/Wishlist';
 import CartPage from './pages/Cart';
 import CheckoutPage from './pages/Checkout';
 import OrderConfirmationPage from './pages/OrderConfirmation';
+import OrderHistoryPage from './pages/OrderHistory';
+import OrderDetailPage from './pages/OrderDetail';
+import MiniCart from './components/MiniCart';
 import './components/SellerDashboard.css';
 import './components/AdminDashboard.css';
 import './components/Notifications.css';
@@ -38,12 +41,14 @@ function HomePage() {
     <main className="page-shell">
       <header className="hero">
         <nav className="topbar">
-          <div className="brand">EduMart</div>
-          <div className="nav-links">
+          <div className="brand"><Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>EduMart</Link></div>
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Link to="/">Home</Link>
             <Link to="/catalog">Catalog</Link>
-            <Link to="/cart">Cart</Link>
+            <Link to="/orders">Orders</Link>
+            <Link to="/wishlist">Wishlist</Link>
             <Link to="/profile">Profile</Link>
+            <MiniCart />
           </div>
         </nav>
 
@@ -172,7 +177,8 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
-        <Route path="/orders/:orderId" element={<OrderConfirmationPage />} />
+        <Route path="/orders" element={<OrderHistoryPage />} />
+        <Route path="/orders/:orderId" element={<OrderDetailPage />} />
         <Route path="/category/:categoryId?" element={<Category />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/product/:productId" element={<ProductDetail />} />

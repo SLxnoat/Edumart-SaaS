@@ -1,0 +1,170 @@
+.mini-cart-container {
+  position: relative;
+  display: inline-block;
+}
+
+.mini-cart-trigger {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1rem;
+  color: inherit;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+}
+
+.mini-cart-trigger:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.cart-badge {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0.1rem 0.45rem;
+  line-height: 1;
+}
+
+.mini-cart-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mini-cart-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.mini-cart-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.mini-cart-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.mini-cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 0.5rem;
+}
+
+.mini-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+}
+
+.mini-item-title:hover {
+  color: #2563eb;
+}
+
+.mini-item-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.mini-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mini-item-total {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mini-remove-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.mini-remove-btn:hover {
+  color: #ef4444;
+}
+
+.mini-cart-footer {
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.mini-subtotal-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.mini-cart-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mini-cart-actions a,
+.mini-cart-actions button {
+  flex: 1;
+  text-align: center;
+}
