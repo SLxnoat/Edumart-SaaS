@@ -114,3 +114,25 @@ export const getAdminOrderDetail = (id) => apiFetch(`/api/admin/orders/${id}`, {
 export const updateAdminOrderStatus = (id, status, notes) => apiFetch(`/api/admin/orders/${id}/status`, { method: 'PUT', body: { status, notes }, auth: true });
 export const refundAdminOrder = (id, amount, reason) => apiFetch(`/api/admin/orders/${id}/refund`, { method: 'POST', body: { amount, reason }, auth: true });
 export const exportAdminOrders = (params = {}) => apiFetch('/api/admin/orders/export', { method: 'POST', body: params, auth: true });
+
+// Admin Review Moderation APIs
+export const getAdminReviews = (params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, val]) => val !== undefined && val !== null && val !== '')
+  ).toString();
+  return apiFetch(`/api/admin/reviews${query ? `?${query}` : ''}`, { auth: true });
+};
+export const approveAdminReview = (id) => apiFetch(`/api/admin/reviews/${id}/approve`, { method: 'PUT', auth: true });
+export const rejectAdminReview = (id) => apiFetch(`/api/admin/reviews/${id}/reject`, { method: 'PUT', auth: true });
+export const deleteAdminReview = (id) => apiFetch(`/api/admin/reviews/${id}`, { method: 'DELETE', auth: true });
+export const respondAdminReview = (id, response) => apiFetch(`/api/admin/reviews/${id}/response`, { method: 'POST', body: { response }, auth: true });
+export const bulkModerateReviews = (ids, action) => apiFetch('/api/admin/reviews/bulk', { method: 'POST', body: { ids, action }, auth: true });
+
+// Admin Notifications & Campaigns APIs
+export const broadcastAdminNotification = (payload) => apiFetch('/api/admin/notifications/broadcast', { method: 'POST', body: payload, auth: true });
+export const getAdminCampaigns = () => apiFetch('/api/admin/notifications/campaigns', { auth: true });
+
+// Admin Settings APIs
+export const getAdminSettings = () => apiFetch('/api/admin/settings', { auth: true });
+export const updateAdminSettings = (payload) => apiFetch('/api/admin/settings', { method: 'PUT', body: payload, auth: true });
+

@@ -19,6 +19,15 @@ test('admin endpoints require authentication and are registered', async () => {
 
     const resOrders = await fetch(`http://127.0.0.1:${port}/api/admin/orders`);
     assert.equal(resOrders.status, 401, 'Admin orders endpoint should require auth (401)');
+
+    const resReviews = await fetch(`http://127.0.0.1:${port}/api/admin/reviews`);
+    assert.equal(resReviews.status, 401, 'Admin reviews endpoint should require auth (401)');
+
+    const resCampaigns = await fetch(`http://127.0.0.1:${port}/api/admin/notifications/campaigns`);
+    assert.equal(resCampaigns.status, 401, 'Admin campaigns endpoint should require auth (401)');
+
+    const resSettings = await fetch(`http://127.0.0.1:${port}/api/admin/settings`);
+    assert.equal(resSettings.status, 401, 'Admin settings endpoint should require auth (401)');
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

@@ -1,0 +1,197 @@
+/* Admin Notifications & Campaigns Styling */
+.admin-notifs-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.admin-notifs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-notifs-header h1 {
+  margin: 0.25rem 0;
+  font-size: 1.85rem;
+  color: #1e293b;
+}
+
+.admin-notifs-subtitle {
+  color: #64748b;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.admin-notifs-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.notif-stat-card {
+  background: #ffffff;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.notif-stat-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.notif-stat-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-notifs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .admin-notifs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.broadcast-card,
+.campaigns-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1.75rem;
+}
+
+.broadcast-card h2,
+.campaigns-card h2 {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  font-size: 1.35rem;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notif-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.notif-form-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.4rem;
+}
+
+.notif-form-group input[type="text"],
+.notif-form-group select,
+.notif-form-group textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.notif-form-group textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.notif-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.notif-checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500 !important;
+  color: #475569 !important;
+}
+
+.campaign-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campaign-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.campaign-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+}
+
+.campaign-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1.05rem;
+}
+
+.campaign-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge-audience {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-type {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.campaign-body {
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0.4rem 0;
+}

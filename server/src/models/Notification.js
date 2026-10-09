@@ -8,16 +8,18 @@ export default (sequelize, DataTypes) => {
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'id',
       },
       allowNull: false,
     },
-    type: {
-      type: DataTypes.ENUM('orderStatus', 'newMessage', 'system', 'promotion'),
+    title: {
+      type: DataTypes.STRING(255),
       allowNull: false,
+      defaultValue: 'Notification',
     },
     message: {
       type: DataTypes.TEXT,
@@ -25,25 +27,23 @@ export default (sequelize, DataTypes) => {
     },
     isRead: {
       type: DataTypes.BOOLEAN,
+      field: 'is_read',
       allowNull: false,
       defaultValue: false,
     },
-    relatedId: {
-      type: DataTypes.UUID,
+    type: {
+      type: DataTypes.STRING(50),
       allowNull: true,
-      references: {
-        model: 'orders',
-        key: 'id',
-      },
+      defaultValue: 'general',
     },
-    relatedType: {
-      type: DataTypes.ENUM('order', 'material', 'user'),
-      allowNull: true,
+    createdAt: {
+      type: DataTypes.DATE,
+      field: 'created_at',
+      defaultValue: DataTypes.NOW,
     },
   }, {
     tableName: 'notifications',
-    timestamps: true,
-    underscored: true,
+    timestamps: false,
   });
 
   // Define associations
@@ -51,11 +51,6 @@ export default (sequelize, DataTypes) => {
     Notification.belongsTo(models.User, {
       foreignKey: 'userId',
       as: 'user',
-    });
-    Notification.belongsTo(models.Order, {
-      foreignKey: 'relatedId',
-      as: 'relatedOrder',
-      constraints: false,
     });
   };
 

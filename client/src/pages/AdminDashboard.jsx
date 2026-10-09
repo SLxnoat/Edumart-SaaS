@@ -320,6 +320,18 @@ const AdminDashboard = () => {
             <h3>Review Moderation</h3>
             <p>Approve or reject pending reviews</p>
           </Link>
+
+          <Link to="/admin/notifications" className="quick-action-card">
+            <div className="action-icon">📢</div>
+            <h3>Campaign Manager</h3>
+            <p>Broadcast targeted notifications &amp; alerts</p>
+          </Link>
+
+          <Link to="/admin/settings" className="quick-action-card">
+            <div className="action-icon">⚙️</div>
+            <h3>System Settings</h3>
+            <p>Marketplace fees, policies &amp; toggles</p>
+          </Link>
         </div>
       </div>
     </div>

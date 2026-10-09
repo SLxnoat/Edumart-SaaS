@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 import sequelize from '../config/db.js';
 
-const { User, Order, OrderItem, Material, Category, Notification } = sequelize.models;
+const { User, Order, OrderItem, Material, Category, Notification, Review } = sequelize.models;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -460,10 +460,9 @@ export const approveProduct = async (req, res) => {
       if (Notification) {
         await Notification.create({
           userId: product.sellerId,
-          type: 'system',
+          title: 'Product Approved',
           message: `Your learning material "${product.title}" has been approved and is now live on EduMart!`,
-          relatedId: product.id,
-          relatedType: 'material',
+          type: 'system',
         });
       }
     } catch (notifErr) {
@@ -506,10 +505,9 @@ export const rejectProduct = async (req, res) => {
       if (Notification) {
         await Notification.create({
           userId: product.sellerId,
-          type: 'system',
+          title: 'Product Moderation Update',
           message: `Your submission "${product.title}" was rejected by moderation: ${reason}`,
-          relatedId: product.id,
-          relatedType: 'material',
+          type: 'system',
         });
       }
     } catch (notifErr) {
@@ -764,10 +762,9 @@ export const updateAdminOrderStatus = async (req, res) => {
       if (Notification && order.userId) {
         await Notification.create({
           userId: order.userId,
-          type: 'orderStatus',
+          title: `Order #${order.orderNumber} Update`,
           message: `Your order #${order.orderNumber} status has been updated to ${status}.`,
-          relatedId: order.id,
-          relatedType: 'order',
+          type: 'orderStatus',
         });
       }
     } catch (notifErr) {
@@ -808,10 +805,9 @@ export const processOrderRefund = async (req, res) => {
       if (Notification && order.userId) {
         await Notification.create({
           userId: order.userId,
-          type: 'orderStatus',
+          title: `Refund Processed for Order #${order.orderNumber}`,
           message: `A refund for order #${order.orderNumber} has been processed: ${reason}`,
-          relatedId: order.id,
-          relatedType: 'order',
+          type: 'orderStatus',
         });
       }
     } catch (notifErr) {
@@ -878,6 +874,484 @@ export const exportAdminOrders = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/reviews
+ */
+export const getAdminReviews = async (req, res) => {
+  try {
+    const { status, rating, search, sort = 'newest', page = 1, limit = 15 } = req.query;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const limitNum = parseInt(limit, 10);
+
+    const whereClause = {};
+    if (status === 'pending') {
+      whereClause.isApproved = false;
+    } else if (status === 'approved') {
+      whereClause.isApproved = true;
+    }
+
+    if (rating && rating !== 'all') {
+      whereClause.rating = parseInt(rating, 10);
+    }
+
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      whereClause[Op.or] = [
+        { comment: { [Op.like]: q } },
+        { title: { [Op.like]: q } },
+        { '$user.first_name$': { [Op.like]: q } },
+        { '$user.last_name$': { [Op.like]: q } },
+        { '$material.title$': { [Op.like]: q } },
+      ];
+    }
+
+    let orderClause = [['createdAt', 'DESC']];
+    if (sort === 'oldest') orderClause = [['createdAt', 'ASC']];
+    else if (sort === 'rating_high') orderClause = [['rating', 'DESC']];
+    else if (sort === 'rating_low') orderClause = [['rating', 'ASC']];
+
+    const [totalCount, pendingCount, approvedCount] = await Promise.all([
+      Review.count(),
+      Review.count({ where: { isApproved: false } }),
+      Review.count({ where: { isApproved: true } }),
+    ]);
+
+    const { count, rows: reviews } = await Review.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false,
+        },
+        {
+          model: Material,
+          as: 'material',
+          attributes: ['id', 'title', 'price', 'subject', 'thumbnailUrl'],
+          required: false,
+        },
+      ],
+      offset,
+      limit: limitNum,
+      order: orderClause,
+    });
+
+    res.json({
+      success: true,
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: parseInt(page, 10),
+      stats: {
+        total: totalCount,
+        pending: pendingCount,
+        approved: approvedCount,
+      },
+      reviews: reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title || 'Product Review',
+        comment: r.comment,
+        isApproved: r.isApproved,
+        createdAt: r.createdAt,
+        user: r.user ? {
+          id: r.user.id,
+          name: `${r.user.firstName} ${r.user.lastName}`,
+          email: r.user.email,
+        } : null,
+        material: r.material ? {
+          id: r.material.id,
+          title: r.material.title,
+          price: Number(r.material.price || 0),
+          subject: r.material.subject,
+          thumbnailUrl: r.material.thumbnailUrl,
+        } : null,
+      })),
+    });
+  } catch (error) {
+    console.error('Get admin reviews error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch reviews' });
+  }
+};
+
+/**
+ * PUT /api/admin/reviews/:id/approve
+ */
+export const approveAdminReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    review.isApproved = true;
+    await review.save();
+
+    // Recalculate material rating if productId exists
+    if (review.productId) {
+      const approvedReviews = await Review.findAll({
+        where: { productId: review.productId, isApproved: true },
+        attributes: ['rating'],
+      });
+      if (approvedReviews.length > 0) {
+        const sum = approvedReviews.reduce((acc, r) => acc + r.rating, 0);
+        const avg = Math.round((sum / approvedReviews.length) * 100) / 100;
+        await Material.update(
+          { ratingAverage: avg, ratingCount: approvedReviews.length },
+          { where: { id: review.productId } }
+        );
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Review approved and published',
+      review: { id: review.id, isApproved: review.isApproved },
+    });
+  } catch (error) {
+    console.error('Approve review error:', error);
+    res.status(500).json({ success: false, message: 'Failed to approve review' });
+  }
+};
+
+/**
+ * PUT /api/admin/reviews/:id/reject
+ */
+export const rejectAdminReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    review.isApproved = false;
+    await review.save();
+
+    res.json({
+      success: true,
+      message: 'Review rejected / unapproved',
+      review: { id: review.id, isApproved: review.isApproved },
+    });
+  } catch (error) {
+    console.error('Reject review error:', error);
+    res.status(500).json({ success: false, message: 'Failed to reject review' });
+  }
+};
+
+/**
+ * DELETE /api/admin/reviews/:id
+ */
+export const deleteAdminReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    const productId = review.productId;
+    await review.destroy();
+
+    // Recalculate material rating
+    if (productId) {
+      const approvedReviews = await Review.findAll({
+        where: { productId, isApproved: true },
+        attributes: ['rating'],
+      });
+      const count = approvedReviews.length;
+      const avg = count > 0 ? Math.round((approvedReviews.reduce((acc, r) => acc + r.rating, 0) / count) * 100) / 100 : 0;
+      await Material.update(
+        { ratingAverage: avg, ratingCount: count },
+        { where: { id: productId } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Review deleted permanently',
+    });
+  } catch (error) {
+    console.error('Delete review error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete review' });
+  }
+};
+
+/**
+ * POST /api/admin/reviews/:id/response
+ */
+export const respondAdminReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { response } = req.body;
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    // Send notification to review author
+    if (Notification && review.userId) {
+      await Notification.create({
+        userId: review.userId,
+        title: 'Response to your Review',
+        message: `EduMart Admin responded to your review: "${response}"`,
+        type: 'system',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Official response delivered to reviewer',
+      response,
+    });
+  } catch (error) {
+    console.error('Respond review error:', error);
+    res.status(500).json({ success: false, message: 'Failed to submit response' });
+  }
+};
+
+/**
+ * POST /api/admin/reviews/bulk
+ */
+export const bulkModerateReviews = async (req, res) => {
+  try {
+    const { ids, action } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide an array of review IDs' });
+    }
+
+    if (action === 'delete') {
+      await Review.destroy({ where: { id: { [Op.in]: ids } } });
+    } else {
+      const isApprove = action === 'approve';
+      await Review.update(
+        { isApproved: isApprove },
+        { where: { id: { [Op.in]: ids } } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: `Bulk review action "${action}" completed for ${ids.length} reviews`,
+      count: ids.length,
+    });
+  } catch (error) {
+    console.error('Bulk review moderation error:', error);
+    res.status(500).json({ success: false, message: 'Bulk review moderation failed' });
+  }
+};
+
+// In-memory or dynamic store for system settings with production defaults
+let systemSettingsStore = {
+  general: {
+    siteName: 'EduMart Marketplace',
+    supportEmail: 'support@edumart.lk',
+    contactPhone: '+94 11 234 5678',
+    maintenanceMode: false,
+    defaultCurrency: 'LKR',
+    allowRegistrations: true,
+  },
+  commissions: {
+    platformCommissionPercent: 10,
+    minPayoutAmount: 2500,
+    payoutHoldPeriodDays: 7,
+    autoApproveVerifiedSellers: false,
+  },
+  security: {
+    enforceEmailVerification: true,
+    sessionTimeoutMinutes: 120,
+    maxLoginAttempts: 5,
+    allowGuestBrowsing: true,
+  },
+  notifications: {
+    emailNotificationsEnabled: true,
+    pushNotificationsEnabled: true,
+    marketingEmailsDefaultOptIn: true,
+  },
+};
+
+// In-memory campaign logs
+const campaignHistoryStore = [
+  {
+    id: 'camp-101',
+    title: 'Welcome to Term 2 on EduMart',
+    message: 'Explore over 500+ newly published exam past papers and study kits from top Sri Lankan educators.',
+    type: 'promotion',
+    targetAudience: 'all',
+    recipientCount: 15,
+    sentBy: 'Super Admin',
+    createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
+    status: 'delivered',
+  },
+  {
+    id: 'camp-102',
+    title: 'Seller Commission Promotion',
+    message: 'Zero listing fees for all Grade 11/O-Level study materials uploaded this weekend!',
+    type: 'system',
+    targetAudience: 'tutors',
+    recipientCount: 5,
+    sentBy: 'Super Admin',
+    createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(),
+    status: 'delivered',
+  },
+];
+
+/**
+ * POST /api/admin/notifications/broadcast
+ * Broadcast notification / campaign to targeted users
+ */
+export const broadcastNotification = async (req, res) => {
+  try {
+    const {
+      title,
+      message,
+      targetAudience = 'all', // 'all' | 'students' | 'tutors' | 'admins'
+      type = 'promotion', // 'promotion' | 'system' | 'general'
+      sendEmail = false,
+    } = req.body || {};
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Notification title is required' });
+    }
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Notification message body is required' });
+    }
+
+    // Build target user filter
+    const userWhere = {};
+    if (targetAudience === 'students') {
+      userWhere.role = 'student';
+    } else if (targetAudience === 'tutors') {
+      userWhere.role = 'tutor';
+    } else if (targetAudience === 'admins') {
+      userWhere.role = 'admin';
+    }
+
+    const recipients = await User.findAll({
+      where: userWhere,
+      attributes: ['id', 'email', 'firstName', 'lastName'],
+    });
+
+    if (recipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `No users found matching audience criteria: ${targetAudience}`,
+      });
+    }
+
+    // Create notifications in database
+    const notifRecords = recipients.map((u) => ({
+      userId: u.id,
+      title: title.trim(),
+      message: message.trim(),
+      type: type || 'general',
+      isRead: false,
+    }));
+
+    await Notification.bulkCreate(notifRecords);
+
+    // Save campaign log
+    const newCampaign = {
+      id: `camp-${Date.now()}`,
+      title: title.trim(),
+      message: message.trim(),
+      type: type || 'general',
+      targetAudience,
+      recipientCount: recipients.length,
+      sentBy: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'EduMart Admin',
+      createdAt: new Date().toISOString(),
+      status: 'delivered',
+      sendEmail: Boolean(sendEmail),
+    };
+    campaignHistoryStore.unshift(newCampaign);
+
+    res.json({
+      success: true,
+      message: `Notification successfully broadcasted to ${recipients.length} recipients`,
+      campaign: newCampaign,
+      recipientCount: recipients.length,
+    });
+  } catch (error) {
+    console.error('Broadcast notification error:', error);
+    res.status(500).json({ success: false, message: 'Failed to broadcast notification' });
+  }
+};
+
+/**
+ * GET /api/admin/notifications/campaigns
+ * Get list of sent notification campaigns
+ */
+export const getCampaigns = async (req, res) => {
+  try {
+    const totalSent = campaignHistoryStore.reduce((acc, c) => acc + (c.recipientCount || 0), 0);
+    res.json({
+      success: true,
+      campaigns: campaignHistoryStore,
+      stats: {
+        totalCampaigns: campaignHistoryStore.length,
+        totalRecipientsReached: totalSent,
+      },
+    });
+  } catch (error) {
+    console.error('Get campaigns error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch campaigns' });
+  }
+};
+
+/**
+ * GET /api/admin/settings
+ * Get platform configuration settings
+ */
+export const getSystemSettings = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      settings: systemSettingsStore,
+    });
+  } catch (error) {
+    console.error('Get system settings error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch system settings' });
+  }
+};
+
+/**
+ * PUT /api/admin/settings
+ * Update platform configuration settings
+ */
+export const updateSystemSettings = async (req, res) => {
+  try {
+    const { general, commissions, security, notifications } = req.body || {};
+
+    if (general) {
+      systemSettingsStore.general = { ...systemSettingsStore.general, ...general };
+    }
+    if (commissions) {
+      systemSettingsStore.commissions = {
+        ...systemSettingsStore.commissions,
+        ...commissions,
+        platformCommissionPercent: Number(commissions.platformCommissionPercent ?? systemSettingsStore.commissions.platformCommissionPercent),
+        minPayoutAmount: Number(commissions.minPayoutAmount ?? systemSettingsStore.commissions.minPayoutAmount),
+      };
+    }
+    if (security) {
+      systemSettingsStore.security = { ...systemSettingsStore.security, ...security };
+    }
+    if (notifications) {
+      systemSettingsStore.notifications = { ...systemSettingsStore.notifications, ...notifications };
+    }
+
+    res.json({
+      success: true,
+      message: 'System settings updated successfully',
+      settings: systemSettingsStore,
+    });
+  } catch (error) {
+    console.error('Update system settings error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update system settings' });
+  }
+};
+
 export default {
   getDashboardStats,
   getAllUsers,
@@ -895,4 +1369,14 @@ export default {
   updateAdminOrderStatus,
   processOrderRefund,
   exportAdminOrders,
+  getAdminReviews,
+  approveAdminReview,
+  rejectAdminReview,
+  deleteAdminReview,
+  respondAdminReview,
+  bulkModerateReviews,
+  broadcastNotification,
+  getCampaigns,
+  getSystemSettings,
+  updateSystemSettings,
 };

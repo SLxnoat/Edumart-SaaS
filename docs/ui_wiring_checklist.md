@@ -319,34 +319,34 @@ This document tracks the implementation status of all UI screens and components 
 - [x] Add export/print functionality (CSV export and formatted printable packing slip)
 
 ### 6.5 Review Moderation Tools
-- [ ] Create AdminReviewsPage component
-- [ ] Implement review list pending moderation
-- [ ] Show review content and product info
-- [ ] Add moderation actions: approve, reject
-- [ ] Implement response capability (for admin/system)
-- [ ] Wire up to review moderation API endpoints
-- [ ] Add helpfulness voting tracking
-- [ ] Add review analytics (sentiment, topics)
+- [x] Create AdminReviewsPage component
+- [x] Implement review list pending moderation
+- [x] Show review content and product info
+- [x] Add moderation actions: approve, reject
+- [x] Implement response capability (for admin/system)
+- [x] Wire up to review moderation API endpoints (/api/admin/reviews)
+- [x] Add helpfulness voting tracking
+- [x] Add review analytics (sentiment, topics, rating distribution)
 
 ### 6.6 Notification/Campaign Management
-- [ ] Create AdminNotificationsPage component
-- [ ] Implement notification creation form
-- [ ] Add targeting options (user roles, segments)
-- [ ] Implement scheduling and delivery options
-- [ ] Wire up to notification API endpoints
-- [ ] Add notification history and analytics
-- [ ] Add A/B testing capabilities
-- [ ] Add template management
+- [x] Create AdminNotificationsPage component
+- [x] Implement notification creation form
+- [x] Add targeting options (user roles, segments: students, tutors, admins, all)
+- [x] Implement scheduling and delivery options
+- [x] Wire up to notification API endpoints (/api/admin/notifications/broadcast)
+- [x] Add notification history and analytics (/api/admin/notifications/campaigns)
+- [x] Add A/B testing capabilities
+- [x] Add template management
 
 ### 6.7 System Settings and Configuration
-- [ ] Create AdminSettingsPage component
-- [ ] Implement settings sections: general, payment, email, security
-- [ ] Add form fields with validation
-- [ ] Implement save/reset functionality
-- [ ] Wire up to settings API endpoints
-- [ ] Add backup/restore options
-- [ ] Add API key management
-- [ ] Add integration settings (third-party services)
+- [x] Create AdminSettingsPage component
+- [x] Implement settings sections: general, payment, email, security
+- [x] Add form fields with validation
+- [x] Implement save/reset functionality
+- [x] Wire up to settings API endpoints (/api/admin/settings)
+- [x] Add backup/restore options
+- [x] Add API key management
+- [x] Add integration settings (third-party services)
 
 ## 7. Review & Rating System (Malki)
 

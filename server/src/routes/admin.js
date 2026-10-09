@@ -16,6 +16,16 @@ import {
   updateAdminOrderStatus,
   processOrderRefund,
   exportAdminOrders,
+  getAdminReviews,
+  approveAdminReview,
+  rejectAdminReview,
+  deleteAdminReview,
+  respondAdminReview,
+  bulkModerateReviews,
+  broadcastNotification,
+  getCampaigns,
+  getSystemSettings,
+  updateSystemSettings,
 } from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { admin } from '../middleware/admin.js';
@@ -49,5 +59,21 @@ router.get('/orders/:id', getAdminOrderDetail);
 router.put('/orders/:id/status', updateAdminOrderStatus);
 router.post('/orders/:id/refund', processOrderRefund);
 router.post('/orders/export', exportAdminOrders);
+
+// Review Moderation Routes
+router.get('/reviews', getAdminReviews);
+router.put('/reviews/:id/approve', approveAdminReview);
+router.put('/reviews/:id/reject', rejectAdminReview);
+router.delete('/reviews/:id', deleteAdminReview);
+router.post('/reviews/:id/response', respondAdminReview);
+router.post('/reviews/bulk', bulkModerateReviews);
+
+// Notification & Campaign Management Routes
+router.post('/notifications/broadcast', broadcastNotification);
+router.get('/notifications/campaigns', getCampaigns);
+
+// System Settings Routes
+router.get('/settings', getSystemSettings);
+router.put('/settings', updateSystemSettings);
 
 export default router;

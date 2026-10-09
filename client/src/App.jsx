@@ -20,6 +20,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsersPage from './pages/AdminUsers';
 import AdminModerationQueue from './pages/AdminModeration';
 import AdminOrdersPage from './pages/AdminOrders';
+import AdminReviewsPage from './pages/AdminReviews';
+import AdminNotificationsPage from './pages/AdminNotifications';
+import AdminSettingsPage from './pages/AdminSettings';
 import Notifications from './pages/Notifications';
 import Reviews from './pages/Reviews';
 import Category from './pages/Category';
@@ -204,11 +207,16 @@ export default function App() {
         <Route path="/seller/analytics" element={<SellerAnalyticsPage />} />
 
         {/* Other platform routes */}
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/moderation" element={<AdminModerationQueue />} />
         <Route path="/admin/products/pending" element={<AdminModerationQueue />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
+        <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+        <Route path="/admin/reviews/pending" element={<AdminReviewsPage />} />
+        <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+        <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/reviews" element={<Reviews />}/>
         <Route path="/resend-verification" element={<ResendVerification />}/>

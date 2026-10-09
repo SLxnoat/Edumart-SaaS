@@ -41,6 +41,7 @@ export default (sequelize, DataTypes) => {
     Material.hasMany(models.CartItem, { foreignKey: 'materialId', as: 'cartItems' });
     Material.hasMany(models.OrderItem, { foreignKey: 'materialId', as: 'orderItems' });
     Material.hasMany(models.Wishlist, { foreignKey: 'productId', as: 'wishlistEntries' });
+    Material.hasMany(models.Review, { foreignKey: 'productId', as: 'reviews' });
   };
 
   return Material;
